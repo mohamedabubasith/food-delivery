@@ -11,6 +11,14 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/food_db
+      # Internal Docker Network Connection (Backend -> MinIO Container)
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_SECURE=False
+      # Config for Backend to authenticate
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      # External URL for Frontend/Clients to access images
+      - MINIO_EXTERNAL_ENDPOINT=http://localhost:9000
     depends_on:
       - db
       - minio
