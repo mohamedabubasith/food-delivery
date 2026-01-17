@@ -26,7 +26,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data # Persist DB data
 
   minio:
     image: minio/minio
@@ -40,8 +40,9 @@ services:
       - MINIO_ROOT_PASSWORD=minioadmin
     command: server /data --console-address ":9001"
     volumes:
-      - minio_data:/data
+      - minio_data:/data # Persist MinIO data
 
+# Persistent Volumes (Data survives docker-compose down)
 volumes:
   postgres_data:
   minio_data:
