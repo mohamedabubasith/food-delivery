@@ -1,4 +1,5 @@
 from .minio_service import MinioService
+from fastapi import UploadFile
 
 # UPLOAD_DIR = "uploads"
 # os.makedirs(UPLOAD_DIR, exist_ok=True)
