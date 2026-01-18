@@ -56,10 +56,11 @@ def authenticate(auth_req: schemas.AuthRequest, db: Session = Depends(database.g
     if not service.verify_login(auth_req.phone_number, auth_req.verify_code):
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
-    if not service.get_user_by_phone(auth_req.phone_number):
+    user = service.get_user_by_phone(auth_req.phone_number)
+    if not user:
          raise HTTPException(status_code=400, detail="User not found")
 
-    access_token = service.generate_token(auth_req.phone_number)
+    access_token = service.generate_token(user)
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/addresses", response_model=schemas.Address)

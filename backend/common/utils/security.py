@@ -31,14 +31,39 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        phone_number: str = payload.get("sub")
-        if phone_number is None:
+        sub: str = payload.get("sub")
+        if sub is None:
             raise credentials_exception
-        token_data = schemas.TokenData(phone_number=phone_number)
+        # Token data now just holds the subject identifier
+        token_data = schemas.TokenData(phone_number=sub) 
     except JWTError:
         raise credentials_exception
         
-    user = db.query(models.User).filter(models.User.phone_number == token_data.phone_number).first()
+    # Logic: Try to find by ID (new standard) or Phone (legacy compatibility)
+    user = None
+    
+    # Check if sub is digit (could be ID or numeric phone)
+    # Strategy: 
+    # 1. Try by ID if it looks like an ID (usually short integer, but phone is long)
+    # BUT user ids are ints. `sub` is string in JWT.
+    # Phone numbers are usually 10+ digits. IDs are usually smaller, but eventually grow.
+    # Better approach: 
+    # Since we are moving to ID as standard, let's assume if we can cast to int, we try ID lookup first.
+    # However, phone "9999999999" is also a valid int.
+    # DIFFERENTIATION: WE WILL PREFIX IDs in `sub`? No, simpler:
+    # Look up by ID first. If not found, look up by phone.
+    # Risk: User ID 1234567890 matches a phone number? Unlikely for now.
+    
+    # Best approach for migration:
+    # If we find a user by ID, return it.
+    # If not, try phone.
+    
+    if sub.isdigit():
+        user = db.query(models.User).filter(models.User.id == int(sub)).first()
+        
+    if not user:
+         user = db.query(models.User).filter(models.User.phone_number == sub).first()
+         
     if user is None:
         raise credentials_exception
     return user

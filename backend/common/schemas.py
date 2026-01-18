@@ -5,13 +5,14 @@ from datetime import datetime, date
 # --- User Schemas ---
 class UserBase(BaseModel):
     name: str
-    phone_number: str
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
     city: Optional[str] = None
 
 class UserCreate(UserBase):
     @validator("phone_number")
     def validate_phone_number(cls, v):
-        if not v.isnumeric():
+        if v and not v.isnumeric():
             raise ValueError("Phone number must be digits.")
         return v
     

@@ -16,6 +16,7 @@ class AuthService:
         db_user = models.User(
             name=user.name,
             phone_number=user.phone_number,
+            email=user.email,
             city=user.city,
             role=0
         )
@@ -44,10 +45,12 @@ class AuthService:
     def login_with_provider(self, token: str, provider: str = "firebase") -> Optional[str]:
         """
         Generic login for external providers (Firebase, Google, etc).
-        Currently supports: 'firebase'
+        Supports lookup by UID, Email, or Phone.
         """
         uid = None
         phone_number = None
+        email = None
+        name = "User"
         
         if provider == "firebase":
             from ..common.utils.firebase import FirebaseService
@@ -55,42 +58,65 @@ class AuthService:
             if decoded:
                 uid = decoded.get("uid")
                 phone_number = decoded.get("phone_number")
+                email = decoded.get("email")
+                if decoded.get("name"):
+                    name = decoded.get("name")
+                elif email:
+                    name = email.split("@")[0]
         else:
             # Future providers can be added here
             pass
             
-        if not uid or not phone_number:
+        if not uid:
             return None
             
-        # Check if user exists by External ID (Provider Agnostic User ID)
+        # Strategy:
+        # 1. Find by External ID (Exact Match)
         user = self.db.query(models.User).filter(models.User.external_id == uid).first()
         
         if not user:
-            # Check by phone to link accounts
-            user = self.get_user_by_phone(phone_number)
+            # 2. Find by Email (Link Account)
+            if email:
+                user = self.db.query(models.User).filter(models.User.email == email).first()
+                
+            # 3. Find by Phone (Link Account)
+            if not user and phone_number:
+                user = self.get_user_by_phone(phone_number)
+                
             if user:
-                # Link existing user
-                user.external_id = uid
+                # Link existing user to this provider
+                if not user.external_id:
+                     user.external_id = uid
+                if not user.email and email:
+                    user.email = email
                 user.auth_provider = provider
                 self.db.commit()
             else:
-                # Create new user
+                # 4. Create New User
                 user = models.User(
                     phone_number=phone_number,
-                    name="User", 
+                    email=email,
+                    name=name, 
                     external_id=uid,
                     auth_provider=provider,
                     role=0 
                 )
                 self.db.add(user)
-                self.db.commit()
-                self.db.refresh(user)
+                
+                try:
+                    self.db.commit()
+                    self.db.refresh(user)
+                except Exception:
+                    # Handle potential duplicate phone/email race condition
+                    self.db.rollback()
+                    return None
         
-        return self.generate_token(user.phone_number)
+        return self.generate_token(user)
             
-    def generate_token(self, phone_number: str):
+    def generate_token(self, user: models.User):
+        # Use User ID as the subject for stability
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            data={"sub": phone_number}, expires_delta=access_token_expires
+            data={"sub": str(user.id)}, expires_delta=access_token_expires
         )
         return access_token

@@ -75,7 +75,7 @@ def test_full_system_integration():
     db.add(admin)
     db.commit()
     from backend.common.utils import security
-    admin_token = security.create_access_token(data={"sub": "999"})
+    admin_token = security.create_access_token(data={"sub": str(admin.id)}) # Use ID
     admin_header = {"Authorization": f"Bearer {admin_token}"}
     
     # Setup User
@@ -83,7 +83,7 @@ def test_full_system_integration():
     db.add(user)
     db.commit()
     user_id = user.id
-    user_token = security.create_access_token(data={"sub": "111"})
+    user_token = security.create_access_token(data={"sub": str(user.id)}) # Use ID
     user_header = {"Authorization": f"Bearer {user_token}"}
     db.close()
     

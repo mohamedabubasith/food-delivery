@@ -45,7 +45,7 @@ def get_auth_headers(role=0):
     db.refresh(user)
     
     from backend.common.utils import security
-    token = security.create_access_token(data={"sub": phone, "role": role})
+    token = security.create_access_token(data={"sub": str(user.id), "role": role})
     db.close()
     return {"Authorization": f"Bearer {token}"}, user.id
 
@@ -137,7 +137,7 @@ def test_core_misc_endpoints():
     db.add(other)
     db.commit()
     from backend.common.utils import security
-    other_token = security.create_access_token(data={"sub": "222"})
+    other_token = security.create_access_token(data={"sub": str(other.id)})
     other_headers = {"Authorization": f"Bearer {other_token}"}
     db.close()
     
