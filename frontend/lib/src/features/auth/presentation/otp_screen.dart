@@ -107,10 +107,10 @@ class _OtpViewState extends State<_OtpView> {
                final profile = await repository.getUserProfile(state.token);
                print('DEBUG: Profile data: $profile');
                // Access name from data object (backend returns {success, data: {name, ...}})
-               final userName = profile['name']?.toString() ?? 'User';
-               print('DEBUG: User name from profile: $userName');
+               final userName = profile['name']?.toString() ?? '';
+               print('DEBUG: Profile check result - Name: \'$userName\'');
                
-               if (userName == 'User' || userName.trim().isEmpty) {
+               if (userName.trim().toLowerCase() == 'user' || userName.trim().isEmpty) {
                  // User needs to set their name
                  print('DEBUG: Name is User, showing name input screen');
                  if (context.mounted) {

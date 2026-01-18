@@ -7,7 +7,6 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/otp_screen.dart';
 import '../features/auth/presentation/email_login_screen.dart';
 import '../features/auth/presentation/name_input_screen.dart';
-import '../features/auth/presentation/name_input_screen.dart';
 import '../features/auth/application/auth_bloc.dart';
 import '../features/dashboard/presentation/home_screen.dart';
 import '../features/dashboard/presentation/offer_screen.dart';

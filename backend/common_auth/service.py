@@ -10,7 +10,28 @@ class AuthService:
         self.db = db
 
     def get_user_by_phone(self, phone_number: str):
-        return self.db.query(models.User).filter(models.User.phone_number == phone_number).first()
+        # 1. Try exact match
+        user = self.db.query(models.User).filter(models.User.phone_number == phone_number).first()
+        if user:
+            return user
+            
+        # 2. Try matching without '+' prefix or matching suffix
+        # If incoming is +919585... try 9585...
+        if phone_number.startswith('+'):
+            clean_phone = phone_number.lstrip('+')
+            # Try matching vs 9585...
+            user = self.db.query(models.User).filter(models.User.phone_number == clean_phone).first()
+            if user:
+                return user
+            
+            # Try matching vs last 10 digits (common for Indian numbers)
+            if len(clean_phone) > 10:
+                short_phone = clean_phone[-10:]
+                user = self.db.query(models.User).filter(models.User.phone_number == short_phone).first()
+                if user:
+                    return user
+                    
+        return None
 
     def create_user(self, user: schemas.UserCreate):
         db_user = models.User(
