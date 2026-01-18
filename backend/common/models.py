@@ -82,6 +82,8 @@ class Food(Base):
     food_name = Column(String, index=True) # Removed unique=True to allow same name in diff restaurants
     food_category = Column(String, index=True) # Indexed for filtering
     food_price = Column(Float)
+    discount_percentage = Column(Float, default=0.0) # New: 20.0 means 20% Off
+    offer_price = Column(Float, nullable=True) # Deprecated but kept for safety
     food_quantity = Column(Integer)
     image_url = Column(String, nullable=True)
     description = Column(String, nullable=True) # New: Food Description
@@ -275,3 +277,21 @@ class Coupon(Base):
     valid_from = Column(DateTime, default=func.now())
     valid_until = Column(DateTime)
     is_active = Column(Boolean, default=True)
+
+class UserCoupon(Base):
+    """
+    Junction table for User claimed coupons.
+    """
+    __tablename__ = "user_coupons"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    coupon_id = Column(Integer, ForeignKey("coupons.id"))
+    
+    is_used = Column(Boolean, default=False)
+    claimed_at = Column(DateTime, default=func.now())
+    used_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    user = relationship("User", backref="user_coupons") # Avoid conflict with backref="coupons" if any
+    coupon = relationship("Coupon")

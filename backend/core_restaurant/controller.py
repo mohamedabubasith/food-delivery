@@ -111,6 +111,26 @@ def validate_coupon(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@restaurant_router.post("/marketing/claim-coupon", response_model=schemas.UserCoupon)
+def claim_coupon(
+    req: schemas.UserCouponCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    service = CoreRestaurantService(db)
+    try:
+        return service.claim_coupon(current_user.id, req.code)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@restaurant_router.get("/marketing/my-coupons", response_model=List[schemas.UserCoupon])
+def get_user_coupons(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    service = CoreRestaurantService(db)
+    return service.get_user_coupons(current_user.id)
+
 # --- MENU ROUTES ---
 @menu_router.post("/upload-image")
 async def upload_food_image(
@@ -135,6 +155,7 @@ def read_menu(
     max_price: Optional[float] = Query(None, description="Max price"),
     is_veg: Optional[bool] = Query(None, description="Filter by dietary preference"),
     sort_by: Optional[str] = Query(None, description="Sort: price_low, price_high, rating"),
+    restaurant_id: Optional[int] = Query(1, description="Restaurant ID"),
     db: Session = Depends(database.get_db)
 ):
     service = CoreRestaurantService(db)
@@ -142,7 +163,8 @@ def read_menu(
         skip=skip, limit=limit, 
         search=search, category=category, 
         min_price=min_price, max_price=max_price, 
-        is_veg=is_veg, sort_by=sort_by
+        is_veg=is_veg, sort_by=sort_by,
+        restaurant_id=restaurant_id
     )
 
 @menu_router.post("/{food_id}/favorite")
@@ -309,3 +331,15 @@ def read_order(
         raise HTTPException(status_code=403, detail="Not authorized to view this order")
         
     return order
+
+@orders_router.post("/feedback")
+def submit_feedback(
+    feedback: schemas.FeedbackCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    service = CoreRestaurantService(db)
+    try:
+        return service.submit_feedback(current_user.id, feedback.order_id, feedback.rate, feedback.comment)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

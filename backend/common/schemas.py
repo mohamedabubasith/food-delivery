@@ -51,6 +51,7 @@ class LoginRequest(BaseModel):
     provider: Optional[str] = None # 'firebase', etc.
     email: Optional[str] = None
     password: Optional[str] = None
+    name: Optional[str] = None # For Google Sign-In displayName
 
 class AuthRequest(BaseModel):
     # For legacy SMS verification
@@ -157,6 +158,7 @@ class FoodBase(BaseModel):
     image_url: Optional[str] = None
     description: Optional[str] = None
     is_veg: bool = False
+    discount_percentage: float = 0.0 # New field
     restaurant_id: Optional[int] = 1 # Default to 1
 
 class FoodCreate(FoodBase):
@@ -321,3 +323,17 @@ class Coupon(CouponBase):
 class CouponApplyRequest(BaseModel):
     code: str
     cart_total: float
+
+class UserCouponBase(BaseModel):
+    user_id: int
+    coupon_id: int
+    is_used: bool = False
+
+class UserCouponCreate(BaseModel):
+    code: str # User claims by Code
+
+class UserCoupon(UserCouponBase):
+    id: int
+    coupon: Coupon # Nested coupon details
+    claimed_at: datetime
+    model_config = ConfigDict(from_attributes=True)

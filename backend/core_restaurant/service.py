@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime
 from ..common import models, schemas
@@ -403,4 +404,84 @@ class CoreRestaurantService:
         self.db.add(db_coll)
         self.db.commit()
         self.db.refresh(db_coll)
+        self.db.refresh(db_coll)
         return db_coll
+        
+    def claim_coupon(self, user_id: int, code: str):
+        now = datetime.now()
+        coupon = self.db.query(models.Coupon).filter(
+            models.Coupon.code == code,
+            models.Coupon.is_active == True,
+            models.Coupon.valid_until >= now
+        ).first()
+
+        if not coupon:
+            raise ValueError("Invalid or Expired Coupon")
+
+        # Check if already claimed
+        existing = self.db.query(models.UserCoupon).filter(
+            models.UserCoupon.user_id == user_id,
+            models.UserCoupon.coupon_id == coupon.id
+        ).first()
+
+        if existing:
+            raise ValueError("Coupon already claimed")
+
+        user_coupon = models.UserCoupon(
+            user_id=user_id,
+            coupon_id=coupon.id
+        )
+        self.db.add(user_coupon)
+        self.db.commit()
+        self.db.refresh(user_coupon)
+        return user_coupon
+
+    def get_user_coupons(self, user_id: int):
+        # Return claimed coupons that are not used and still valid
+        now = datetime.now()
+        return self.db.query(models.UserCoupon).join(models.Coupon).filter(
+            models.UserCoupon.user_id == user_id,
+            models.UserCoupon.is_used == False,
+            models.Coupon.valid_until >= now,
+            models.Coupon.is_active == True
+        ).all()
+
+    def submit_feedback(self, user_id: int, order_id: int, rate: int, comment: str):
+        order = self.db.query(models.Order).filter(
+            models.Order.id == order_id, 
+            models.Order.user_id == user_id
+        ).first()
+        
+        if not order:
+            raise ValueError("Order not found or does not belong to user")
+            
+        existing = self.db.query(models.Feedback).filter(models.Feedback.order_id == order_id).first()
+        if existing:
+            existing.rate = rate
+            existing.comment = comment
+        else:
+            feedback = models.Feedback(
+                user_id=user_id,
+                order_id=order_id,
+                rate=rate,
+                comment=comment
+            )
+            self.db.add(feedback)
+        
+        self.db.commit()
+        
+        # Update Food Rating Link
+        food_id = order.food_id
+        avg_rating = self.db.query(func.avg(models.Feedback.rate))\
+            .join(models.Order, models.Order.id == models.Feedback.order_id)\
+            .filter(models.Order.food_id == food_id)\
+            .scalar()
+            
+        if avg_rating is not None:
+             food = self.get_food(food_id)
+             if food:
+                 food.rating = round(float(avg_rating), 1)
+                 self.db.add(food)
+                 self.db.commit()
+                 
+        return {"status": "success", "new_rating": round(float(avg_rating or 0), 1)}

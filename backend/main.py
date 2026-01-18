@@ -10,6 +10,20 @@ app = FastAPI(title="Unified Food Order & Delivery System")
 add_exception_handlers(app)
 app.add_middleware(ResponseWrapperMiddleware)
 
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Create tables on startup
 @app.on_event("startup")
 def startup_event():

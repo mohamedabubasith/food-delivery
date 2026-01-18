@@ -30,7 +30,7 @@ def login(req: schemas.LoginRequest, db: Session = Depends(database.get_db)):
         if not req.token:
             raise HTTPException(status_code=400, detail="Token required for provider login")
         
-        access_token = service.login_with_provider(req.token, provider)
+        access_token = service.login_with_provider(req.token, provider, req.name)
         if not access_token:
             raise HTTPException(status_code=400, detail="Invalid Credentials")
             
@@ -39,9 +39,16 @@ def login(req: schemas.LoginRequest, db: Session = Depends(database.get_db)):
     # Flow 2: Legacy Local OTP
     elif provider == "local" and req.phone_number:
         # OTP Flow
-        if not service.get_user_by_phone(req.phone_number):
-            raise HTTPException(status_code=400, detail="Phone number not found")
-        
+        user = service.get_user_by_phone(req.phone_number)
+        if not user:
+            # Auto-Signup (Zomato Style)
+            user_create = schemas.UserCreate(
+                name="Guest User", 
+                phone_number=req.phone_number,
+                city="Unknown"
+            )
+            user = service.create_user(user_create)
+            
         if service.initiate_login(req.phone_number):
             return {"message": "Verification code sent"}
         else:
@@ -68,7 +75,15 @@ def authenticate(auth_req: schemas.AuthRequest, db: Session = Depends(database.g
     
     user = service.get_user_by_phone(auth_req.phone_number)
     if not user:
-         raise HTTPException(status_code=400, detail="User not found")
+        # Auto-create user if they don't exist (Firebase Phone Auth flow)
+        user_create = schemas.UserCreate(
+            name="User",  # Will be updated via name input screen
+            phone_number=auth_req.phone_number,
+            city="Unknown"
+        )
+        user = service.create_user(user_create)
+        if not user:
+            raise HTTPException(status_code=500, detail="Failed to create user")
 
     access_token = service.generate_token(user)
     return {"access_token": access_token, "token_type": "bearer"}
@@ -102,6 +117,19 @@ def update_profile(
     updated_user = service.update_user_profile(current_user.id, user_update)
     return updated_user
 
+@router.put("/profile")
+def update_profile_name(
+    update_data: dict,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update user profile (specifically name for now)"""
+    if 'name' in update_data:
+        current_user.name = update_data['name']
+        db.commit()
+        db.refresh(current_user)
+    return {"message": "Profile updated successfully"}
+
 @router.delete("/addresses/{address_id}")
 def delete_address(
     address_id: int,
@@ -121,7 +149,13 @@ def read_users_me(current_user: models.User = Depends(get_current_user)):
 
 @router.get("/whoiam")
 def whoiam(current_user: models.User = Depends(get_current_user)):
-    return {"admin": current_user.role == 1}
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "phone_number": current_user.phone_number,
+        "email": current_user.email,
+        "admin": current_user.role == 1
+    }
 
 @router.get("/panel")
 def panel(current_user: models.User = Depends(get_current_user)):

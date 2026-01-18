@@ -1,0 +1,63 @@
+{
+  "@@locale": "en",
+  "appName": "Local Eats",
+  "welcomeTitle": "Welcome to Local Eats",
+  "welcomeSubtitle": "Order delicious food from local restaurants.",
+  "phoneNumber": "Phone Number",
+  "phoneHint": "Enter a valid 10-digit number",
+  "continueButton": "Continue",
+  "termsText": "By continuing, you agree to our Terms & Privacy Policy.",
+  "verification": "Verification",
+  "enterOtp": "Enter the OTP sent to {phone}",
+  "@enterOtp": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyButton": "Verify & Login",
+  "resendCodeIn": "Resend code in 00:{time}",
+  "@resendCodeIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "resendCode": "Resend Code",
+  "loginSuccessful": "Login Successful",
+  "codeSent": "Verification code sent",
+  "invalidCode": "Invalid verification code",
+  "homeTitle": "Home Screen (BLoC Edition)",
+  "completeProfile": "Complete Your Profile",
+  "whatsYourName": "What's your name?",
+  "personalizeName": "This helps us personalize your experience",
+  "fullName": "Full Name",
+  "enterYourName": "Enter your name",
+  "pleaseEnterName": "Please enter your name",
+  "nameMinLength": "Name must be at least 2 characters",
+  "welcome": "Welcome!",
+  "continueWithGoogle": "Continue with Google",
+  "googleSignInSuccess": "Google Sign-In successful",
+  "invalidOtpCode": "Invalid verification code. Please try again.",
+  "otpExpired": "Verification code expired. Please request a new code.",
+  "tooManyRequests": "Too many attempts. Please try again later.",
+  "phoneNumberInvalid": "Invalid phone number format.",
+  "verificationFailed": "Verification failed. Please try again.",
+  "emailAddress": "Email Address",
+  "password": "Password",
+  "signIn": "Sign In",
+  "signUp": "Sign Up",
+  "continueWithEmail": "Continue with Email",
+  "newUser": "New user?",
+  "alreadyHaveAccount": "Already have an account?",
+  "invalidEmail": "Invalid email address",
+  "weakPassword": "Password is too weak (min 6 characters)",
+  "emailAlreadyInUse": "Email already in use",
+  "wrongPassword": "Incorrect password",
+  "userNotFound": "No account found with this email",
+  "emailSignInSuccess": "Login successful!",
+  "errorEmailInUse": "Account exists. Please sign in or use Google if you used it before.",
+  "errorWrongPassword": "Incorrect password. If you used Google, please sign in with Google."
+}

@@ -26,7 +26,12 @@ class AuthService:
         return db_user
 
     def initiate_login(self, phone_number: str):
-        code = sms.generate_verify_code()
+        # Hardcoded OTP for Test Number
+        if phone_number == "9585909514":
+            code = "123456"
+        else:
+            code = sms.generate_verify_code()
+            
         # Clean up old codes
         self.db.query(models.Auth).filter(models.Auth.phone_number == phone_number).delete()
         
@@ -42,7 +47,7 @@ class AuthService:
             models.Auth.verify_code == code
         ).first()
 
-    def login_with_provider(self, token: str, provider: str = "firebase") -> Optional[str]:
+    def login_with_provider(self, token: str, provider: str = "firebase", custom_name: Optional[str] = None) -> Optional[str]:
         """
         Generic login for external providers (Firebase, Google, etc).
         Supports lookup by UID, Email, or Phone.
@@ -59,10 +64,11 @@ class AuthService:
                 uid = decoded.get("uid")
                 phone_number = decoded.get("phone_number")
                 email = decoded.get("email")
-                if decoded.get("name"):
+                # Use custom_name if provided, otherwise extract from token
+                if custom_name:
+                    name = custom_name
+                elif decoded.get("name"):
                     name = decoded.get("name")
-                elif email:
-                    name = email.split("@")[0]
         else:
             # Future providers can be added here
             pass
@@ -89,6 +95,9 @@ class AuthService:
                      user.external_id = uid
                 if not user.email and email:
                     user.email = email
+                # Update name if provided
+                if custom_name and user.name == "User":
+                    user.name = custom_name
                 user.auth_provider = provider
                 self.db.commit()
             else:

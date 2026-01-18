@@ -29,10 +29,15 @@ class ResponseWrapperMiddleware(BaseHTTPMiddleware):
             # Use standard wrapper
             wrapped = success_response(data=data)
             
+            # Create new headers without Content-Length (it changes)
+            new_headers = dict(response.headers)
+            if "content-length" in new_headers:
+                del new_headers["content-length"]
+                
             return JSONResponse(
                 content=wrapped,
                 status_code=response.status_code,
-                headers=dict(response.headers)
+                headers=new_headers
             )
         except Exception:
             # If parsing fails or anything goes wrong, return original

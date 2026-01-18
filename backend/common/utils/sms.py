@@ -30,4 +30,4 @@ def send_sms_verify(to: str, code: str) -> bool:
     return True
 
 def generate_verify_code() -> str:
-    return str(random.randint(1000, 9999))
+    return str(random.randint(100000, 999999))
