@@ -14,6 +14,7 @@ import '../features/dashboard/presentation/offer_screen.dart';
 import '../features/dashboard/presentation/product_details_screen.dart';
 import '../features/dashboard/presentation/favorites_screen.dart';
 import '../features/cart/presentation/cart_screen.dart';
+import '../features/cart/presentation/checkout_screen.dart';
 
 // Helper class to convert Bloc Stream to Listenable for GoRouter
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -108,6 +109,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: '/favorites',
         builder: (context, state) => const FavoritesScreen(),
+      ),
+      GoRoute(
+        path: '/checkout',
+        builder: (context, state) => const CheckoutScreen(),
       ),
     ],
   );

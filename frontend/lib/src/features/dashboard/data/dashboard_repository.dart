@@ -172,4 +172,58 @@ class DashboardRepository {
       return null;
     }
   }
+
+  // --- Address Management ---
+  Future<List<dynamic>> getAddresses() async {
+    try {
+      final response = await _dio.get('/auth/addresses');
+      if (response.data is Map && response.data.containsKey('data')) {
+        return response.data['data'] as List<dynamic>;
+      }
+      return response.data as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> addAddress(Map<String, dynamic> addressData) async {
+    try {
+      final response = await _dio.post('/auth/addresses', data: addressData);
+       if (response.data is Map && response.data.containsKey('data')) {
+        return response.data['data'] as Map<String, dynamic>;
+      }
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      if (e is DioException) {
+        throw Exception(e.response?.data['detail'] ?? "Failed to add address");
+      }
+      rethrow;
+    }
+  }
+
+  // --- Checkout ---
+  Future<Map<String, dynamic>> checkout({
+    required List<Map<String, dynamic>> items,
+    int? addressId,
+    String? couponCode,
+  }) async {
+    try {
+      final response = await _dio.post('/orders/checkout', data: {
+        "items": items,
+        "address_id": addressId,
+        "coupon_code": couponCode,
+        "restaurant_id": 1, // Default
+      });
+      
+       if (response.data is Map && response.data.containsKey('data')) {
+        return response.data['data'] as Map<String, dynamic>;
+      }
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      if (e is DioException) {
+        throw Exception(e.response?.data['detail'] ?? "Checkout failed");
+      }
+      rethrow;
+    }
+  }
 }

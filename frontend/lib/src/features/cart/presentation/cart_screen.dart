@@ -256,8 +256,7 @@ class _CartScreenState extends State<CartScreen> {
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Proceeding to Payment...")));
-                        // Implement Checkout Flow
+                        context.push('/checkout');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
