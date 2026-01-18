@@ -44,15 +44,15 @@ def setup_db():
 def test_register_success():
     response = client.post("/auth/register", json={
         "name": "Test User",
-        "phone_number": "10000000001",
+        "phone_number": "9876543210",
         "city": "Test City"
     })
     assert response.status_code == 200
     data = response.json()
-    assert data["phone_number"] == "10000000001"
+    assert data["phone_number"] == "9876543210"
 
 def test_login_flow():
-    phone = "10000000001"
+    phone = "9876543210"
     client.post("/auth/register", json={"name": "Login User", "phone_number": phone, "city": "Login City"})
     
     # Explicitly set provider to local since we changed default to firebase
@@ -71,7 +71,7 @@ def test_login_flow():
 def test_full_system_integration():
     # Setup Admin
     db = TestingSessionLocal()
-    admin = models.User(name="Admin", phone_number="999", role=1, city="Admin City")
+    admin = models.User(name="Admin", phone_number="9999999999", role=1, city="Admin City")
     db.add(admin)
     db.commit()
     from backend.common.utils import security
@@ -79,7 +79,7 @@ def test_full_system_integration():
     admin_header = {"Authorization": f"Bearer {admin_token}"}
     
     # Setup User
-    user = models.User(name="User", phone_number="111", role=0, city="User City")
+    user = models.User(name="User", phone_number="8888888888", role=0, city="User City")
     db.add(user)
     db.commit()
     user_id = user.id
@@ -218,7 +218,7 @@ def test_full_system_integration():
         "label": "Home",
         "address_line": "123 Main St",
         "city": "Metropolis",
-        "zip_code": "10001"
+        "zip_code": "560001"
     }
     res = client.post("/auth/addresses", json=address_data, headers=user_header)
     assert res.status_code == 200

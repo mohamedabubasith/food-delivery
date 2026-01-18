@@ -36,7 +36,7 @@ def setup_db():
 
 def get_auth_headers(role=0):
     db = TestingSessionLocal()
-    phone = "999" if role == 1 else "111"
+    phone = "9999999999" if role == 1 else "8888888888"
     name = "Admin" if role == 1 else "User"
     
     user = models.User(name=name, phone_number=phone, role=role, city="Test City")
@@ -61,10 +61,25 @@ def test_auth_misc_endpoints():
     res = client.get("/auth/whoiam", headers=headers)
     assert res.status_code == 200
     assert res.json()["admin"] is False
+
+    # Test Unauthorized access to /auth/me
+    res = client.get("/auth/me")
+    assert res.status_code == 401
+    
+    # Test Update Profile (Valid)
+    res = client.put("/auth/me", json={"name": "New Name", "city": "Goa", "phone_number": "9876543210"}, headers=headers)
+    assert res.status_code == 200
+    assert res.json()["name"] == "New Name"
+    assert res.json()["city"] == "Goa"
+    assert res.json()["phone_number"] == "9876543210"
+    
+    # Test Update Profile (Invalid Phone)
+    res = client.put("/auth/me", json={"name": "New Name", "phone_number": "123"}, headers=headers)
+    assert res.status_code == 422 # Pydantic Validation Error
     
     # 3. GET /auth/addresses
     # First create one
-    client.post("/auth/addresses", json={"label": "Work", "address_line": "123", "city": "City", "zip_code": "000"}, headers=headers)
+    client.post("/auth/addresses", json={"label": "Work", "address_line": "123", "city": "City", "zip_code": "560003"}, headers=headers)
     # Then List
     res = client.get("/auth/addresses", headers=headers)
     assert res.status_code == 200
@@ -137,7 +152,7 @@ def test_core_misc_endpoints():
     # Test Unauthorized Access (Another user)
     # Setup Another User
     db = TestingSessionLocal()
-    other = models.User(name="Other", phone_number="222", role=0)
+    other = models.User(name="Other", phone_number="7777777777", role=0)
     db.add(other)
     db.commit()
     from backend.common.utils import security
@@ -179,30 +194,53 @@ def test_marketplace_and_profile():
     admin_headers, _ = get_auth_headers(role=1)
     user_headers, user_id = get_auth_headers(role=0)
 
-    # 1. Restaurant Management
-    # Create (Admin)
+    # 1. Restaurant Management & Geo-Location
+    # Create (Admin) - Near User (12.9716, 77.5946 - Bangalore)
+    # Restaurant A: 1km away
     res = client.post("/restaurants/", json={
-        "name": "New Tasty Spot",
-        "address": "123 Flavor Town",
-        "image_url": "http://img.com/logo.png"
+        "name": "Nearby Eats",
+        "address": "Bangalore Central",
+        "image_url": "http://img.com/logo.png",
+        "latitude": 12.9800, # Slightly north
+        "longitude": 77.5946
     }, headers=admin_headers)
     assert res.status_code == 200
-    r_id = res.json()["id"]
+    near_id = res.json()["id"]
 
-    # List (Public/User)
-    res = client.get("/restaurants/?search=Tasty", headers=user_headers)
+    # Restaurant B: 100km away
+    res = client.post("/restaurants/", json={
+        "name": "Far Away Food",
+        "address": "Mysore",
+        "image_url": "http://img.com/logo2.png",
+        "latitude": 12.2958, 
+        "longitude": 76.6394
+    }, headers=admin_headers)
+    assert res.status_code == 200
+    
+    # List (Public/User) - No Loco
+    res = client.get("/restaurants/?search=Eats", headers=user_headers)
     assert res.status_code == 200
     assert len(res.json()) >= 1
-    assert res.json()[0]["name"] == "New Tasty Spot"
+    
+    # List - With Loco (Should sort Nearby First)
+    # User at 12.97, 77.59
+    res = client.get("/restaurants/?lat=12.9716&lng=77.5946", headers=user_headers)
+    assert res.status_code == 200
+    data = res.json()
+    # Check if "Nearby Eats" is before "Far Away Food"
+    # Note: DB might have other items, but we checking relative order of these two if present
+    overview = [r["name"] for r in data]
+    if "Nearby Eats" in overview and "Far Away Food" in overview:
+        assert overview.index("Nearby Eats") < overview.index("Far Away Food")
 
     # Get Details
-    res = client.get(f"/restaurants/{r_id}", headers=user_headers)
+    res = client.get(f"/restaurants/{near_id}", headers=user_headers)
     assert res.status_code == 200
-    assert res.json()["address"] == "123 Flavor Town"
+    assert res.json()["latitude"] == 12.9800
 
     # 2. User Profile Update
     # Update Name & City
-    update_data = {"name": "Updated Name", "city": "New City", "phone_number": "111"}
+    update_data = {"name": "Updated Name", "city": "New City", "phone_number": "9988776655"}
     res = client.put("/auth/me", json=update_data, headers=user_headers)
     assert res.status_code == 200
     assert res.json()["name"] == "Updated Name"
@@ -214,7 +252,7 @@ def test_marketplace_and_profile():
 
     # 3. Address Deletion
     # Create Address
-    res = client.post("/auth/addresses", json={"label": "To Delete", "address_line": "X", "city": "X", "zip_code": "X"}, headers=user_headers)
+    res = client.post("/auth/addresses", json={"label": "To Delete", "address_line": "X", "city": "X", "zip_code": "560002"}, headers=user_headers)
     addr_id = res.json()["id"]
 
     # Delete

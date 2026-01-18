@@ -131,7 +131,8 @@ class AuthService:
             user.email = update_data.email
         if update_data.city:
             user.city = update_data.city
-        # Phone number update prevented here for simplicity or needs re-verification logic
+        if update_data.phone_number:
+            user.phone_number = update_data.phone_number
         
         self.db.commit()
         self.db.refresh(user)

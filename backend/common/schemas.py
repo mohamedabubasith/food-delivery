@@ -12,14 +12,29 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     @validator("phone_number")
     def validate_phone_number(cls, v):
-        if v and not v.isnumeric():
-            raise ValueError("Phone number must be digits.")
+        import re
+        if not v:
+            return v
+        # Normalize: Remove spaces, dashes
+        v = v.replace(" ", "").replace("-", "")
+        # Check for +91 or just 10 digits
+        if v.startswith("+91"):
+            v = v[3:]
+        
+        # Indian Mobile: 10 digits, starts with 6-9
+        if not re.match(r"^[6-9]\d{9}$", v):
+             raise ValueError("Phone number must be a valid 10-digit Indian mobile number (e.g., 9876543210).")
         return v
     
     @validator("name")
     def validate_name(cls, v):
         if not v.strip():
             raise ValueError("Name cannot be empty.")
+        return v
+
+    @validator("city")
+    def validate_city(cls, v):
+        # Optional: could enforce list of Indian cities, but free text is fine for now
         return v
 
 class User(UserBase):
@@ -53,6 +68,8 @@ class RestaurantBase(BaseModel):
     name: str
     address: Optional[str] = None
     image_url: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class RestaurantCreate(RestaurantBase):
     pass
@@ -71,6 +88,12 @@ class AddressBase(BaseModel):
     zip_code: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+
+    @validator("zip_code")
+    def validate_pincode(cls, v):
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError("Zip code must be a valid 6-digit Indian Pincode.")
+        return v
 
 class AddressCreate(AddressBase):
     pass

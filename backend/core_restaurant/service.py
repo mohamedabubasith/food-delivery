@@ -8,11 +8,34 @@ class CoreRestaurantService:
         self.db = db
 
     # --- Restaurant Management ---
-    def get_restaurants(self, search: Optional[str] = None):
+    def get_restaurants(self, search: Optional[str] = None, lat: Optional[float] = None, lng: Optional[float] = None):
         query = self.db.query(models.Restaurant)
+        
         if search:
             query = query.filter(models.Restaurant.name.ilike(f"%{search}%"))
-        return query.all()
+        
+        results = query.all()
+        
+        # Calculate Distance if User Location provided
+        if lat is not None and lng is not None:
+            import math
+            def calculate_distance(r_lat, r_lng):
+                if r_lat is None or r_lng is None:
+                    return float('inf')
+                # Haversine Formula
+                R = 6371 # Earth radius in km
+                d_lat = math.radians(r_lat - lat)
+                d_lng = math.radians(r_lng - lng)
+                a = math.sin(d_lat/2) * math.sin(d_lat/2) + \
+                    math.cos(math.radians(lat)) * math.cos(math.radians(r_lat)) * \
+                    math.sin(d_lng/2) * math.sin(d_lng/2)
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+                return R * c
+
+            # Sort by distance
+            results.sort(key=lambda r: calculate_distance(r.latitude, r.longitude))
+            
+        return results
 
     def get_restaurant_by_id(self, restaurant_id: int):
         return self.db.query(models.Restaurant).filter(models.Restaurant.id == restaurant_id).first()
@@ -21,7 +44,9 @@ class CoreRestaurantService:
         db_restaurant = models.Restaurant(
             name=restaurant.name,
             address=restaurant.address,
-            image_url=restaurant.image_url
+            image_url=restaurant.image_url,
+            latitude=restaurant.latitude,
+            longitude=restaurant.longitude
         )
         self.db.add(db_restaurant)
         self.db.commit()

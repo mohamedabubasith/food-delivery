@@ -35,7 +35,11 @@ class Restaurant(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     address = Column(String, nullable=True)
+    name = Column(String, unique=True, index=True)
+    address = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     
     # Owner/Manager (Optional link to User)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)

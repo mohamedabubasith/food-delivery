@@ -20,10 +20,12 @@ restaurant_router = APIRouter(prefix="/restaurants", tags=["restaurants"])
 @restaurant_router.get("/", response_model=List[schemas.Restaurant])
 def get_restaurants(
     search: Optional[str] = Query(None, description="Search by name"),
+    lat: Optional[float] = Query(None, description="User Latitude"),
+    lng: Optional[float] = Query(None, description="User Longitude"),
     db: Session = Depends(database.get_db)
 ):
     service = CoreRestaurantService(db)
-    return service.get_restaurants(search)
+    return service.get_restaurants(search, lat, lng)
 
 @restaurant_router.get("/{restaurant_id}", response_model=schemas.Restaurant)
 def get_restaurant(
