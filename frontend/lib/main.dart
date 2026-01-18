@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 import 'src/app.dart';
 import 'src/config/app_config.dart';
@@ -21,24 +22,15 @@ void main() async {
   // 1. Initialize Core Services
   final appConfig = AppConfig.dev();
 
+  // Initialize Firebase using platform-specific configuration
   try {
-    if (appConfig.firebaseOptions['apiKey']?.isNotEmpty ?? false) {
-      await Firebase.initializeApp(
-        options: FirebaseOptions(
-          apiKey: appConfig.firebaseOptions['apiKey']!,
-          authDomain: appConfig.firebaseOptions['authDomain']!,
-          projectId: appConfig.firebaseOptions['projectId']!,
-          storageBucket: appConfig.firebaseOptions['storageBucket']!,
-          messagingSenderId: appConfig.firebaseOptions['messagingSenderId']!,
-          appId: appConfig.firebaseOptions['appId']!,
-          measurementId: appConfig.firebaseOptions['measurementId'],
-        ),
-      );
-    } else {
-      await Firebase.initializeApp();
-    }
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint("✅ Firebase initialized successfully");
   } catch (e) {
-    debugPrint("Firebase initialization failed: $e");
+    debugPrint("❌ Firebase initialization failed: $e");
+    // Continue app execution even if Firebase fails
   }
   
   // 2. Setup Dio

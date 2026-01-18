@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../data/auth_repository.dart';
@@ -80,22 +81,53 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     LoginSubmitted event,
     Emitter<LoginState> emit,
   ) async {
+    print('📱 LoginBloc: Starting phone auth for ${event.phoneNumber}');
     emit(LoginLoading());
     
+    // Use Completer to keep event handler alive until callback fires
+    final completer = Completer<void>();
+    
     // Use Firebase Phone Authentication
-    await _repository.signInWithPhoneNumber(
+    print('📱 LoginBloc: Calling signInWithPhoneNumber...');
+    _repository.signInWithPhoneNumber(
       event.phoneNumber,
       onCodeSent: (verificationId) {
-        emit(const LoginSuccess('Verification code sent'));
+        print('✅ LoginBloc: Code sent! VerificationId: $verificationId');
+        print('📱 LoginBloc: emit.isDone = ${emit.isDone}');
+        if (!emit.isDone) {
+          emit(const LoginSuccess('Verification code sent'));
+        }
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       },
       onError: (error) {
-        emit(LoginFailure(error));
+        print('❌ LoginBloc: Error occurred: $error');
+        print('📱 LoginBloc: emit.isDone = ${emit.isDone}');
+        if (!emit.isDone) {
+          emit(LoginFailure(error));
+        }
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       },
       onAutoVerify: (credential) async {
         // Auto-verification succeeded (Android only)
-        emit(const LoginSuccess('Auto-verified'));
+        print('✅ LoginBloc: Auto-verified!');
+        print('📱 LoginBloc: emit.isDone = ${emit.isDone}');
+        if (!emit.isDone) {
+          emit(const LoginSuccess('Auto-verified'));
+        }
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       },
     );
+    print('📱 LoginBloc: Waiting for Firebase callback...');
+    
+    // Wait for one of the callbacks to fire
+    await completer.future;
+    print('📱 LoginBloc: Event handler completing');
   }
 
   Future<void> _onGoogleSubmitted(

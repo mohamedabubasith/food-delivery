@@ -217,6 +217,7 @@ class Order(OrderBase):
     id: int
     user_id: int
     status: str
+    price_at_order: Optional[float] = None  # Snapshot of price at order time
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
     food: Optional[Food] = None

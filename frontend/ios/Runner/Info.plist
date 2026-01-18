@@ -45,6 +45,18 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.885717421274-pjvrkjv1mc7moijj3ncm756l3nk82c5n</string>
+				<string>app-1-885717421274-ios-9fb270fe541e76862aa9e3</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to location to show nearby restaurants and deliver your food.</string>
 	<key>NSLocationAlwaysUsageDescription</key>

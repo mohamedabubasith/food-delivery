@@ -96,30 +96,38 @@ class AuthRepository {
     required Function(String error) onError,
     Function(PhoneAuthCredential credential)? onAutoVerify,
   }) async {
+    print('📞 AuthRepository: Starting phone verification for $phoneNumber');
     try {
+      print('📞 AuthRepository: Calling Firebase verifyPhoneNumber...');
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
           // Auto-verification (Android only)
+          print('✅ AuthRepository: verificationCompleted callback triggered');
           if (onAutoVerify != null) {
             onAutoVerify(credential);
           }
         },
         verificationFailed: (FirebaseAuthException e) {
+          print('❌ AuthRepository: verificationFailed - ${e.code}: ${e.message}');
           onError(e.message ?? 'Phone verification failed');
         },
         codeSent: (String verificationId, int? resendToken) {
+          print('✅ AuthRepository: codeSent callback triggered - ID: $verificationId');
           _verificationId = verificationId;
           _resendToken = resendToken;
           onCodeSent(verificationId);
         },
         codeAutoRetrievalTimeout: (String verificationId) {
+          print('⏰ AuthRepository: codeAutoRetrievalTimeout - ID: $verificationId');
           _verificationId = verificationId;
         },
         forceResendingToken: _resendToken,
       );
+      print('📞 AuthRepository: verifyPhoneNumber call completed');
     } catch (e) {
+      print('❌ AuthRepository: Exception caught: $e');
       onError(e.toString());
     }
   }

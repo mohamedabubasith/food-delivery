@@ -24,6 +24,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     try {
       final repo = context.read<DashboardRepository>();
       final orders = await repo.getOrders();
+      print('🛒 Orders fetched: ${orders.length} orders');
+      if (orders.isNotEmpty) {
+        print('🛒 First order data: ${orders[0]}');
+      }
       if (mounted) {
         setState(() {
           _orders = orders;
@@ -31,6 +35,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         });
       }
     } catch (e) {
+      print('❌ Error fetching orders: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -115,7 +120,32 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                       ],
                                     ),
                                   ),
-                                  Text("₹${order['price_at_order']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Builder(
+                                    builder: (context) {
+                                      // Calculate price with fallback logic
+                                      double? price;
+                                      
+                                      if (order['price_at_order'] != null) {
+                                        // Use snapshot price if available
+                                        price = (order['price_at_order'] as num).toDouble();
+                                      } else if (order['variant'] != null && order['variant']['variant_price'] != null) {
+                                        // Use variant price if order has a variant
+                                        price = (order['variant']['variant_price'] as num).toDouble();
+                                      } else if (order['food']?['food_price'] != null) {
+                                        // Fallback to base food price
+                                        price = (order['food']['food_price'] as num).toDouble();
+                                      }
+                                      
+                                      // Calculate total with quantity
+                                      final quantity = order['quantity'] ?? 1;
+                                      final total = price != null ? (price * quantity) : null;
+                                      
+                                      return Text(
+                                        total != null ? "₹${total.toStringAsFixed(0)}" : "N/A",
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
                               const Divider(height: 24),
