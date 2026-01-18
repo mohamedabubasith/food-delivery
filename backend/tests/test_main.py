@@ -48,7 +48,7 @@ def test_register_success():
         "city": "Test City"
     })
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert data["phone_number"] == "9876543210"
 
 def test_login_flow():
@@ -66,7 +66,7 @@ def test_login_flow():
     
     res = client.post("/auth/token", json={"phone_number": phone, "verify_code": code})
     assert res.status_code == 200
-    assert "access_token" in res.json()
+    assert "access_token" in res.json()["data"]
 
 def test_full_system_integration():
     # Setup Admin
@@ -90,24 +90,24 @@ def test_full_system_integration():
     # 1. Core Restaurant: Create Menu
     import json
     food_data = {"food_name": "Modular Pizza", "food_category": "Test", "food_price": 25.0, "food_quantity": 10}
-    res = client.post("/menu/", data={"food_data": json.dumps(food_data)}, headers=admin_header)
-    assert res.status_code == 200
-    food_id = res.json()["food_id"]
+    res = client.post("/menu/", data={"food_data": json.dumps(food_data)}, files={}, headers=admin_header)
+    assert res.status_code == 200, f"FAILED TO CREATE FOOD: {res.text}"
+    food_id = res.json()["data"]["food_id"]
     
     # 2. Core Restaurant: Create Order
     res = client.post("/orders/", json={"food_id": food_id, "quantity": 1}, headers=user_header)
     assert res.status_code == 200
-    order_id = res.json()["id"]
+    order_id = res.json()["data"]["id"]
     
     # 3. Kitchen Service: Update Status
     res = client.put(f"/kitchen/orders/{order_id}/status", json={"status": "finished"}, headers=admin_header)
     assert res.status_code == 200
-    assert res.json()["status"] == "finished"
+    assert res.json()["data"]["status"] == "finished"
 
     # 4. Table Management
     res = client.post("/tables/", json={"name": 1, "seat": 4}, headers=admin_header)
     assert res.status_code == 200
-    table_id = res.json()["id"]
+    table_id = res.json()["data"]["id"]
 
     # 5. Reservation Flow
     # Check availability
@@ -127,12 +127,12 @@ def test_full_system_integration():
     # 6. Billing
     res = client.get(f"/bill/{user_id}", headers=user_header)
     assert res.status_code == 200
-    assert "total_amount" in res.json()
+    assert "total_amount" in res.json()["data"]
 
     # 7. Auth Panel
     res = client.get("/auth/panel", headers=user_header)
     assert res.status_code == 200
-    assert res.json()["name"] == "User"
+    assert res.json()["data"]["name"] == "User"
 
     # 8. Food Variants & Images
     # Upload Image (Mock)
@@ -154,15 +154,15 @@ def test_full_system_integration():
     # Using data= for multipart/form-data
     res = client.post("/menu/", data={"food_data": json.dumps(variant_food_data)}, headers=admin_header)
     assert res.status_code == 200
-    bbq_id = res.json()["food_id"]
-    variants = res.json()["variants"]
+    bbq_id = res.json()["data"]["food_id"]
+    variants = res.json()["data"]["variants"]
     assert len(variants) == 3
     half_variant_id = next(v["id"] for v in variants if v["variant_name"] == "Half")
     
     # Order a Variant
     res = client.post("/orders/", json={"food_id": bbq_id, "variant_id": half_variant_id, "quantity": 1}, headers=user_header)
     assert res.status_code == 200
-    assert res.json()["variant"]["variant_name"] == "Half"
+    assert res.json()["data"]["variant"]["variant_name"] == "Half"
 
     # 9. Zomato Features: Description, Veg, Search, Favorites
     # Create Veg Item
@@ -176,29 +176,29 @@ def test_full_system_integration():
     }
     res = client.post("/menu/", data={"food_data": json.dumps(veg_food)}, headers=admin_header)
     assert res.status_code == 200
-    paneer_id = res.json()["food_id"]
+    paneer_id = res.json()["data"]["food_id"]
     
     # Toggle Favorite
     res = client.post(f"/menu/{paneer_id}/favorite", headers=user_header)
     assert res.status_code == 200
-    assert res.json()["status"] == "added"
+    assert res.json()["data"]["status"] == "added"
     
     # Get Favorites
     res = client.get("/menu/favorites", headers=user_header)
     assert res.status_code == 200
-    assert len(res.json()) > 0
-    assert res.json()[0]["food_name"] == "Paneer Tikka"
+    assert len(res.json()["data"]) > 0
+    assert res.json()["data"][0]["food_name"] == "Paneer Tikka"
     
     # Search
     res = client.get("/menu/?search=paneer", headers=user_header)
-    assert len(res.json()) == 1
-    assert res.json()[0]["food_name"] == "Paneer Tikka"
+    assert len(res.json()["data"]) == 1
+    assert res.json()["data"][0]["food_name"] == "Paneer Tikka"
     
     # Filter by Veg
     res = client.get("/menu/?is_veg=true", headers=user_header)
     # Should find Paneer Tikka (Veg) but NOT Chicken BBQ (Non-Veg default)
     # Check that *all* returned are veg
-    for item in res.json():
+    for item in res.json()["data"]:
         assert item["is_veg"] is True
     
     # Filter by Price Range
@@ -207,7 +207,7 @@ def test_full_system_integration():
     # Note: Our search filters on *base* price currently.
     # Paneer is 200.
     found_paneer = False
-    for item in res.json():
+    for item in res.json()["data"]:
         if item["food_name"] == "Paneer Tikka":
             found_paneer = True
     assert found_paneer is True
@@ -222,8 +222,20 @@ def test_full_system_integration():
     }
     res = client.post("/auth/addresses", json=address_data, headers=user_header)
     assert res.status_code == 200
-    address_id = res.json()["id"]
+    address_id = res.json()["data"]["id"]
     
+    # Create Coupon first
+    from datetime import datetime, timedelta
+    valid_until = (datetime.now() + timedelta(days=5)).isoformat()
+    coupon_data = {
+        "code": "DIWALI10",
+        "discount_type": "percentage",
+        "discount_value": 10.0,
+        "min_order_value": 100.0,
+        "valid_until": valid_until
+    }
+    client.post("/restaurants/marketing/coupons", json=coupon_data, headers=admin_header)
+
     # Checkout (Batch Order)
     checkout_data = {
         "items": [
@@ -237,7 +249,7 @@ def test_full_system_integration():
     
     res = client.post("/orders/checkout", json=checkout_data, headers=user_header)
     assert res.status_code == 200
-    summary = res.json()
+    summary = res.json()["data"]
     assert summary["total_amount"] == 760.0
     assert summary["discount_amount"] == 76.0
     assert summary["final_amount"] == 684.0
@@ -257,10 +269,10 @@ def test_full_system_integration():
     # Use standard /auth/login
     res = client.post("/auth/login", json=login_payload)
     assert res.status_code == 200
-    assert "access_token" in res.json()
+    assert "access_token" in res.json()["data"]
     
     # Verify user was created
-    fb_header = {"Authorization": f"Bearer {res.json()['access_token']}"}
+    fb_header = {"Authorization": f"Bearer {res.json()['data']['access_token']}"}
     res = client.get("/auth/me", headers=fb_header)
     assert res.status_code == 200
-    assert res.json()["phone_number"] == "+918888888888"
+    assert res.json()["data"]["phone_number"] == "+918888888888"

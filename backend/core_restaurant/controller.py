@@ -47,6 +47,70 @@ def create_restaurant(
     service = CoreRestaurantService(db)
     return service.create_restaurant(restaurant)
 
+# --- Marketing & Discovery Endpoints ---
+
+@restaurant_router.get("/marketing/banners", response_model=List[schemas.Banner])
+def get_banners(db: Session = Depends(database.get_db)):
+    service = CoreRestaurantService(db)
+    return service.get_banners()
+
+@restaurant_router.post("/marketing/banners", response_model=schemas.Banner)
+def create_banner(
+    banner: schemas.BannerCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_active_kitchen_user) # Admin
+):
+    service = CoreRestaurantService(db)
+    return service.create_banner(banner)
+
+@restaurant_router.get("/marketing/collections", response_model=List[schemas.Collection])
+def get_collections(db: Session = Depends(database.get_db)):
+    service = CoreRestaurantService(db)
+    return service.get_collections()
+
+@restaurant_router.post("/marketing/collections", response_model=schemas.Collection)
+def create_collection(
+    collection: schemas.CollectionCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_active_kitchen_user) # Admin
+):
+    service = CoreRestaurantService(db)
+    return service.create_collection(collection)
+
+@restaurant_router.get("/marketing/coupons", response_model=List[schemas.Coupon])
+def get_coupons(
+    active_only: bool = True,
+    db: Session = Depends(database.get_db)
+):
+    service = CoreRestaurantService(db)
+    return service.get_coupons(active_only)
+
+@restaurant_router.post("/marketing/coupons", response_model=schemas.Coupon)
+def create_coupon(
+    coupon: schemas.CouponCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_active_kitchen_user) # Admin
+):
+    service = CoreRestaurantService(db)
+    return service.create_coupon(coupon)
+
+@restaurant_router.post("/marketing/apply-coupon")
+def validate_coupon(
+    req: schemas.CouponApplyRequest,
+    db: Session = Depends(database.get_db)
+):
+    service = CoreRestaurantService(db)
+    try:
+        discount, coupon = service.validate_coupon(req.code, req.cart_total)
+        return {
+            "valid": True,
+            "discount_amount": discount,
+            "final_amount": req.cart_total - discount,
+            "code": coupon.code
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 # --- MENU ROUTES ---
 @menu_router.post("/upload-image")
 async def upload_food_image(
@@ -55,6 +119,11 @@ async def upload_food_image(
 ):
     url = await StorageService.upload_image(file)
     return {"image_url": url}
+
+@menu_router.get("/filters")
+def get_menu_filters(db: Session = Depends(database.get_db)):
+    service = CoreRestaurantService(db)
+    return service.get_menu_meta()
 
 @menu_router.get("/", response_model=List[schemas.Food])
 def read_menu(

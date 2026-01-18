@@ -19,3 +19,5 @@ my-project-*.json
 firebase_session.txt
 trigger_*.py
 verify_*.py
+firebase_credentials.json
+firebase_service_account.json

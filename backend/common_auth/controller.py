@@ -37,10 +37,8 @@ def login(req: schemas.LoginRequest, db: Session = Depends(database.get_db)):
         return {"access_token": access_token, "token_type": "bearer"}
 
     # Flow 2: Legacy Local OTP
-    else:
-        if not req.phone_number:
-            raise HTTPException(status_code=400, detail="Phone number required for local login")
-            
+    elif provider == "local" and req.phone_number:
+        # OTP Flow
         if not service.get_user_by_phone(req.phone_number):
             raise HTTPException(status_code=400, detail="Phone number not found")
         
@@ -48,6 +46,18 @@ def login(req: schemas.LoginRequest, db: Session = Depends(database.get_db)):
             return {"message": "Verification code sent"}
         else:
             raise HTTPException(status_code=500, detail="Failed to send SMS")
+
+    # Flow 3: Email/Password (Super Admin)
+    elif provider == "local" and req.email and req.password:
+        user = service.authenticate_user(req.email, req.password)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        token = service.generate_token(user)
+        return {"access_token": token, "token_type": "bearer"}
+
+    else:
+         raise HTTPException(status_code=400, detail="Invalid login request")
 
 @router.post("/token", response_model=schemas.Token)
 def authenticate(auth_req: schemas.AuthRequest, db: Session = Depends(database.get_db)):
@@ -124,3 +134,37 @@ def panel(current_user: models.User = Depends(get_current_user)):
 @router.get("/hi")
 def hi():
     return {"message": "Hi"}
+
+@router.post("/promote")
+def promote_user(phone: str, current_user: models.User = Depends(get_current_user), db: Session = Depends(database.get_db)):
+    # Standardize phone number (strip +91 if present) for consistency
+    if phone.startswith("+91"):
+        phone = phone[3:]
+        
+    if current_user.role != 1:
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+        
+    service = AuthService(db)
+    user = service.promote_user(phone)
+    if not user:
+         raise HTTPException(status_code=404, detail="User not found")
+    return {"message": f"User {user.name} promoted to Admin", "role": user.role}
+
+@router.post("/device-token")
+def register_device_token(token: str, device_type: str = "mobile", current_user: models.User = Depends(get_current_user), db: Session = Depends(database.get_db)):
+    """Register FCM Token for Push Notifications"""
+    # Check if token exists
+    existing = db.query(models.UserDevice).filter(models.UserDevice.fcm_token == token).first()
+    if existing:
+        existing.user_id = current_user.id # Update owner if changed
+        existing.last_active = datetime.utcnow()
+    else:
+        new_device = models.UserDevice(
+            user_id=current_user.id,
+            fcm_token=token,
+            device_type=device_type
+        )
+        db.add(new_device)
+    
+    db.commit()
+    return {"message": "Device registered"}

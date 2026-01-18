@@ -5,6 +5,8 @@ psycopg2-binary
 pydantic
 python-jose[cryptography]
 passlib[bcrypt]
+apscheduler==3.10.4
+firebase-admin==6.2.0
 python-multipart
 requests
 firebase-admin

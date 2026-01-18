@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, ConfigDict
 from datetime import datetime, date
 
 # --- User Schemas ---
@@ -49,6 +49,8 @@ class LoginRequest(BaseModel):
     phone_number: Optional[str] = None # For legacy SMS flow
     token: Optional[str] = None # For Provider flow (Firebase)
     provider: Optional[str] = None # 'firebase', etc.
+    email: Optional[str] = None
+    password: Optional[str] = None
 
 class AuthRequest(BaseModel):
     # For legacy SMS verification
@@ -268,6 +270,54 @@ class WaitingCreate(WaitingBase):
 
 class Waiting(WaitingBase):
     id: int
-    user_id: int
-    class Config:
-        orm_mode = True
+
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Marketing Schemas ---
+
+class BannerBase(BaseModel):
+    image_url: str
+    title: Optional[str] = None
+    deep_link: Optional[str] = None
+    is_active: bool = True
+    priority: int = 0
+
+class BannerCreate(BannerBase):
+    pass
+
+class Banner(BannerBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+class CollectionBase(BaseModel):
+    title: str
+    image_url: Optional[str] = None
+    description: Optional[str] = None
+
+class CollectionCreate(CollectionBase):
+    food_ids: List[int] = []
+
+class Collection(CollectionBase):
+    id: int
+    foods: List[Food] = [] # Nested objects
+    model_config = ConfigDict(from_attributes=True)
+
+class CouponBase(BaseModel):
+    code: str
+    discount_type: str # "percentage" or "flat"
+    discount_value: float
+    min_order_value: float = 0.0
+    max_discount_amount: Optional[float] = None
+    valid_until: datetime
+    is_active: bool = True
+
+class CouponCreate(CouponBase):
+    pass
+
+class Coupon(CouponBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+class CouponApplyRequest(BaseModel):
+    code: str
+    cart_total: float

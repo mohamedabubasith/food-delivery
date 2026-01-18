@@ -55,12 +55,12 @@ def test_auth_misc_endpoints():
     # 1. GET /auth/hi
     res = client.get("/auth/hi")
     assert res.status_code == 200
-    assert res.json()["message"] == "Hi"
+    assert res.json()["data"]["message"] == "Hi"
     
     # 2. GET /auth/whoiam
     res = client.get("/auth/whoiam", headers=headers)
     assert res.status_code == 200
-    assert res.json()["admin"] is False
+    assert res.json()["data"]["admin"] is False
 
     # Test Unauthorized access to /auth/me
     res = client.get("/auth/me")
@@ -69,9 +69,9 @@ def test_auth_misc_endpoints():
     # Test Update Profile (Valid)
     res = client.put("/auth/me", json={"name": "New Name", "city": "Goa", "phone_number": "9876543210"}, headers=headers)
     assert res.status_code == 200
-    assert res.json()["name"] == "New Name"
-    assert res.json()["city"] == "Goa"
-    assert res.json()["phone_number"] == "9876543210"
+    assert res.json()["data"]["name"] == "New Name"
+    assert res.json()["data"]["city"] == "Goa"
+    assert res.json()["data"]["phone_number"] == "9876543210"
     
     # Test Update Profile (Invalid Phone)
     res = client.put("/auth/me", json={"name": "New Name", "phone_number": "123"}, headers=headers)
@@ -83,8 +83,8 @@ def test_auth_misc_endpoints():
     # Then List
     res = client.get("/auth/addresses", headers=headers)
     assert res.status_code == 200
-    assert len(res.json()) == 1
-    assert res.json()[0]["label"] == "Work"
+    assert len(res.json()["data"]) == 1
+    assert res.json()["data"][0]["label"] == "Work"
 
 from unittest.mock import patch
 
@@ -103,7 +103,7 @@ def test_core_misc_endpoints():
     with patch("backend.common.utils.minio_service.MinioService.upload_file", return_value="http://mock-minio/test.jpg"):
         res = client.post("/menu/upload-image", files=files, headers=admin_headers)
         assert res.status_code == 200
-        assert res.json()["image_url"] == "http://mock-minio/test.jpg" 
+        assert res.json()["data"]["image_url"] == "http://mock-minio/test.jpg" 
     
     # 2. Tables & Reservations List
     client.post("/tables/", json={"name": 99, "seat": 2}, headers=admin_headers)
@@ -111,17 +111,17 @@ def test_core_misc_endpoints():
     # GET /tables/
     res = client.get("/tables/", headers=user_headers)
     assert res.status_code == 200
-    assert len(res.json()) == 1
-    table_id = res.json()[0]["id"]
+    assert len(res.json()["data"]) == 1
+    table_id = res.json()["data"][0]["id"]
     
     # Create Reservation
     res = client.post("/reservations/", json={"table_id": table_id, "slot": 1, "r_date": "2025-01-01"}, headers=user_headers)
-    r_id = res.json()["id"]
+    r_id = res.json()["data"]["id"]
     
     # GET /reservations/
     res = client.get("/reservations/", headers=user_headers) # Endpoint uses TableService.get_reservations()
     assert res.status_code == 200
-    assert len(res.json()) >= 1
+    assert len(res.json()["data"]) >= 1
     
     # DELETE /reservations/{id}
     res = client.delete(f"/reservations/{r_id}", headers=user_headers)
@@ -130,7 +130,7 @@ def test_core_misc_endpoints():
     # Verify deletion
     res = client.get("/reservations/", headers=user_headers)
     # Depending on implementation, might return empty list
-    ids = [r["id"] for r in res.json()]
+    ids = [r["id"] for r in res.json()["data"]]
     assert r_id not in ids
 
     # 3. GET /orders/{id}
@@ -140,14 +140,14 @@ def test_core_misc_endpoints():
     import json
     food_data = {"food_name": "Test", "food_category": "Test", "food_price": 10, "food_quantity": 10}
     res = client.post("/menu/", data={"food_data": json.dumps(food_data)}, headers=admin_headers)
-    food_id = res.json()["food_id"]
+    food_id = res.json()["data"]["food_id"]
     res = client.post("/orders/", json={"food_id": food_id, "quantity": 1}, headers=user_headers)
-    order_id = res.json()["id"]
+    order_id = res.json()["data"]["id"]
     
     # Get Order Detail
     res = client.get(f"/orders/{order_id}", headers=user_headers)
     assert res.status_code == 200
-    assert res.json()["id"] == order_id
+    assert res.json()["data"]["id"] == order_id
     
     # Test Unauthorized Access (Another user)
     # Setup Another User
@@ -176,19 +176,19 @@ def test_kitchen_endpoints():
         print(f"MENU CREATE FAILED: {res.json()}")
     assert res.status_code == 200
     
-    food_id = res.json()["food_id"]
+    food_id = res.json()["data"]["food_id"]
     client.post("/orders/", json={"food_id": food_id, "quantity": 1}, headers=user_headers)
     
     # GET /kitchen/orders (Default status=created)
     res = client.get("/kitchen/orders", headers=admin_headers)
     assert res.status_code == 200
-    assert len(res.json()) >= 1
-    assert res.json()[0]["status"] == "created"
+    assert len(res.json()["data"]) >= 1
+    assert res.json()["data"][0]["status"] == "created"
     
     # Filter by non-existent status
     res = client.get("/kitchen/orders?status=finished", headers=admin_headers)
     assert res.status_code == 200
-    assert len(res.json()) == 0
+    assert len(res.json()["data"]) == 0
 
 def test_marketplace_and_profile():
     admin_headers, _ = get_auth_headers(role=1)
@@ -205,7 +205,7 @@ def test_marketplace_and_profile():
         "longitude": 77.5946
     }, headers=admin_headers)
     assert res.status_code == 200
-    near_id = res.json()["id"]
+    near_id = res.json()["data"]["id"]
 
     # Restaurant B: 100km away
     res = client.post("/restaurants/", json={
@@ -220,13 +220,13 @@ def test_marketplace_and_profile():
     # List (Public/User) - No Loco
     res = client.get("/restaurants/?search=Eats", headers=user_headers)
     assert res.status_code == 200
-    assert len(res.json()) >= 1
+    assert len(res.json()["data"]) >= 1
     
     # List - With Loco (Should sort Nearby First)
     # User at 12.97, 77.59
     res = client.get("/restaurants/?lat=12.9716&lng=77.5946", headers=user_headers)
     assert res.status_code == 200
-    data = res.json()
+    data = res.json()["data"]
     # Check if "Nearby Eats" is before "Far Away Food"
     # Note: DB might have other items, but we checking relative order of these two if present
     overview = [r["name"] for r in data]
@@ -236,31 +236,31 @@ def test_marketplace_and_profile():
     # Get Details
     res = client.get(f"/restaurants/{near_id}", headers=user_headers)
     assert res.status_code == 200
-    assert res.json()["latitude"] == 12.9800
+    assert res.json()["data"]["latitude"] == 12.9800
 
     # 2. User Profile Update
     # Update Name & City
     update_data = {"name": "Updated Name", "city": "New City", "phone_number": "9988776655"}
     res = client.put("/auth/me", json=update_data, headers=user_headers)
     assert res.status_code == 200
-    assert res.json()["name"] == "Updated Name"
-    assert res.json()["city"] == "New City"
+    assert res.json()["data"]["name"] == "Updated Name"
+    assert res.json()["data"]["city"] == "New City"
 
     # Verify persistence
     res = client.get("/auth/me", headers=user_headers)
-    assert res.json()["name"] == "Updated Name"
+    assert res.json()["data"]["name"] == "Updated Name"
 
     # 3. Address Deletion
     # Create Address
     res = client.post("/auth/addresses", json={"label": "To Delete", "address_line": "X", "city": "X", "zip_code": "560002"}, headers=user_headers)
-    addr_id = res.json()["id"]
+    addr_id = res.json()["data"]["id"]
 
     # Delete
     res = client.delete(f"/auth/addresses/{addr_id}", headers=user_headers)
     assert res.status_code == 200
     
     res = client.get("/auth/addresses", headers=user_headers)
-    ids = [a["id"] for a in res.json()]
+    ids = [a["id"] for a in res.json()["data"]]
     assert addr_id not in ids
 
 def test_food_with_images():
@@ -291,7 +291,7 @@ def test_food_with_images():
             headers=admin_headers
         )
         assert res.status_code == 200
-        data = res.json()
+        data = res.json()["data"]
         assert data["food_name"] == "Multi Image Burger"
         assert len(data["images"]) == 2
         assert data["image_url"] == "http://minio/1.jpg" # Primary set to first

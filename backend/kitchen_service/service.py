@@ -19,4 +19,19 @@ class KitchenService:
             order.updated_at = datetime.utcnow()
             self.db.commit()
             self.db.refresh(order)
+            
+            # Send Notification
+            try:
+                from ..common.utils import notification_service
+                devices = self.db.query(models.UserDevice).filter(models.UserDevice.user_id == order.user_id).all()
+                for device in devices:
+                    notification_service.send_push_notification(
+                        token=device.fcm_token,
+                        title=f"Order Update: {status.title()}",
+                        body=f"Your order #{order.id} is now {status}.",
+                        data={"order_id": str(order.id), "status": status}
+                    )
+            except Exception as e:
+                print(f"Failed to send notification: {e}")
+                
         return order

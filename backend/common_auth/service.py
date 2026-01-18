@@ -149,3 +149,44 @@ class AuthService:
             self.db.commit()
             return True
         return False
+
+    def create_super_admin(self, email, password):
+        """Bootstrap Super Admin if not exists"""
+        existing = self.db.query(models.User).filter(models.User.email == email).first()
+        if existing:
+            return existing
+            
+        print(f"Creating Super Admin: {email}")
+        from ..common.utils.security import get_password_hash
+        user = models.User(
+            name="Super Admin",
+            email=email,
+            role=1,
+            auth_provider="local",
+            password_hash=get_password_hash(password),
+            phone_number="0000000000" # Dummy
+        )
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def authenticate_user(self, email, password):
+        """Verify email/password login"""
+        user = self.db.query(models.User).filter(models.User.email == email).first()
+        if not user:
+            return None
+        from ..common.utils.security import verify_password
+        if not verify_password(password, user.password_hash):
+            return None
+        return user
+    
+    def promote_user(self, phone_number: str):
+        """Promote a user to Admin (Role 1)"""
+        user = self.get_user_by_phone(phone_number)
+        if user:
+            user.role = 1
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+        return None

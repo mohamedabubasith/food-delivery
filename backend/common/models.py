@@ -1,7 +1,8 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Float, Boolean, DateTime, Date
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, Boolean, DateTime, Date, Table as SATable
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
+from datetime import datetime
 
 class User(Base):
     """
@@ -19,12 +20,24 @@ class User(Base):
     # Auth Provider Info
     external_id = Column(String, unique=True, nullable=True, index=True) # ID from Firebase/Auth0/etc.
     auth_provider = Column(String, default="local") # "firebase", "local", "google", "apple"
+    password_hash = Column(String, nullable=True) # For Super Admin / Email Login
     
     # Relationships
+    # Relationships
+    # Relationships
     orders = relationship("Order", backref="user")
-    reservations = relationship("Reservation", backref="user")
-    waitings = relationship("Waiting", backref="user")
-    feedbacks = relationship("Feedback", backref="user")
+    # devices relationship handled by backref in UserDevice
+
+class UserDevice(Base):
+    __tablename__ = "user_devices"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey(User.id))
+    fcm_token = Column(String, unique=True, index=True)
+    device_type = Column(String, nullable=True) # android, ios, web
+    last_active = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", backref="devices")
 
 class Restaurant(Base):
     """
@@ -35,11 +48,10 @@ class Restaurant(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     address = Column(String, nullable=True)
-    name = Column(String, unique=True, index=True)
-    address = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    is_active = Column(Boolean, default=True)
     
     # Owner/Manager (Optional link to User)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -210,3 +222,56 @@ class Waiting(Base):
     table_id = Column(Integer, ForeignKey("tables.id"))
     slot = Column(Integer)
     r_date = Column(Date)
+
+# --- Marketing & Discovery Models ---
+
+# Association Table for Collections <-> Foods
+collection_foods = SATable(
+    "collection_foods",
+    Base.metadata,
+    Column("collection_id", Integer, ForeignKey("collections.id")),
+    Column("food_id", Integer, ForeignKey("foods.food_id"))
+)
+
+class Banner(Base):
+    """
+    Promotional Banners (Home Screen Slides)
+    """
+    __tablename__ = "banners"
+
+    id = Column(Integer, primary_key=True, index=True)
+    image_url = Column(String)
+    title = Column(String, nullable=True) # "50% Off", "Diwali Special"
+    deep_link = Column(String, nullable=True) # "app://restaurant/1", "app://collection/5"
+    is_active = Column(Boolean, default=True)
+    priority = Column(Integer, default=0) # For sorting
+
+class Collection(Base):
+    """
+    Curated Lists (e.g. "Best Pizza", "Trending")
+    """
+    __tablename__ = "collections"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    image_url = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    
+    # Many-to-Many Relationship
+    foods = relationship("Food", secondary=collection_foods, backref="collections")
+
+class Coupon(Base):
+    """
+    Discount Coupons
+    """
+    __tablename__ = "coupons"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True) # e.g. "WELCOME50"
+    discount_type = Column(String) # "percentage" or "flat"
+    discount_value = Column(Float) # 50.0 (amount) or 10.0 (percent)
+    min_order_value = Column(Float, default=0.0)
+    max_discount_amount = Column(Float, nullable=True) # Cap for percentage, e.g. Max ₹100 off
+    valid_from = Column(DateTime, default=func.now())
+    valid_until = Column(DateTime)
+    is_active = Column(Boolean, default=True)

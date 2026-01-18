@@ -86,16 +86,34 @@ class CoreRestaurantService:
             
         if is_veg is not None:
             query = query.filter(models.Food.is_veg == is_veg)
-
-        # Sorting
-        if sort_by == 'price_low':
-            query = query.order_by(models.Food.food_price.asc())
-        elif sort_by == 'price_high':
-            query = query.order_by(models.Food.food_price.desc())
-        elif sort_by == 'rating':
-            query = query.order_by(models.Food.rating.desc())
-        
+            
+        if sort_by:
+            if sort_by == "price_low":
+                query = query.order_by(models.Food.food_price.asc())
+            elif sort_by == "price_high":
+                query = query.order_by(models.Food.food_price.desc())
+            elif sort_by == "rating":
+                query = query.order_by(models.Food.rating.desc())
+            # "best_seller" would complex join with Order, skipping for now or mocking
+            
         return query.offset(skip).limit(limit).all()
+
+    def get_menu_meta(self):
+        """
+        Returns metadata for filters: Min/Max Price, All Categories.
+        """
+        from sqlalchemy import func
+        min_price = self.db.query(func.min(models.Food.food_price)).scalar() or 0
+        max_price = self.db.query(func.max(models.Food.food_price)).scalar() or 0
+        categories = self.db.query(models.Food.food_category).distinct().all()
+        # categories comes as list of tuples [('Pizza',), ('Burger',)]
+        cat_list = [c[0] for c in categories if c[0]]
+        
+        return {
+            "min_price": min_price,
+            "max_price": max_price,
+            "categories": cat_list
+        }
 
     def create_food(self, food: schemas.FoodCreate):
         # Ensure restaurant_id is set
@@ -150,7 +168,84 @@ class CoreRestaurantService:
             self.db.refresh(db_food)
             
         return db_food
+
+    # --- Marketing & Discovery ---
+    def get_banners(self):
+        return self.db.query(models.Banner).filter(models.Banner.is_active == True).order_by(models.Banner.priority.desc()).all()
+
+    def create_banner(self, banner: schemas.BannerCreate):
+        db_banner = models.Banner(**banner.model_dump())
+        self.db.add(db_banner)
+        self.db.commit()
+        self.db.refresh(db_banner)
+        return db_banner
+
+    def get_collections(self):
+        return self.db.query(models.Collection).all()
+
+    def create_collection(self, collection: schemas.CollectionCreate):
+        db_coll = models.Collection(
+            title=collection.title,
+            image_url=collection.image_url,
+            description=collection.description
+        )
+        if collection.restaurant_ids:
+            restaurants = self.db.query(models.Restaurant).filter(models.Restaurant.id.in_(collection.restaurant_ids)).all()
+            db_coll.restaurants = restaurants
+            
+        self.db.add(db_coll)
+        self.db.commit()
+        self.db.refresh(db_coll)
+        return db_coll
         
+        return db_coll
+
+    def get_coupons(self, active_only: bool = True):
+        query = self.db.query(models.Coupon)
+        if active_only:
+            now = datetime.now()
+            query = query.filter(
+                models.Coupon.is_active == True,
+                models.Coupon.valid_until >= now
+            )
+        return query.all()
+
+    def create_coupon(self, coupon: schemas.CouponCreate):
+        db_coupon = models.Coupon(**coupon.model_dump())
+        self.db.add(db_coupon)
+        self.db.commit()
+        self.db.refresh(db_coupon)
+        return db_coupon
+
+    def validate_coupon(self, code: str, cart_total: float):
+        now = datetime.now()
+        coupon = self.db.query(models.Coupon).filter(
+            models.Coupon.code == code,
+            models.Coupon.is_active == True,
+            models.Coupon.valid_until >= now
+        ).first()
+
+        if not coupon:
+            raise ValueError("Invalid or Expired Coupon")
+
+        if cart_total < coupon.min_order_value:
+            raise ValueError(f"Minimum order value of {coupon.min_order_value} required")
+
+        # Calculate Discount
+        discount = 0.0
+        if coupon.discount_type == "percentage":
+            discount = (cart_total * coupon.discount_value) / 100
+            if coupon.max_discount_amount:
+                discount = min(discount, coupon.max_discount_amount)
+        else: # flat
+            discount = coupon.discount_value
+        
+        # Ensure discount doesn't exceed total
+        discount = min(discount, cart_total)
+        
+        return discount, coupon
+
+    # Updated Checkout with REAL Coupon Logic
     def checkout(self, checkout_req: schemas.CheckoutRequest, user_id: int, billing_service):
         """
         Process batch order checkout
@@ -194,11 +289,15 @@ class CoreRestaurantService:
         
         self.db.commit()
         
-        # Apply Logic for Coupon (Mock)
+        # Apply Logic for Coupon (REAL)
         discount = 0.0
-        if checkout_req.coupon_code == "DIWALI10":
-            discount = total_amount * 0.10
-            
+        if checkout_req.coupon_code:
+            try:
+                discount, _ = self.validate_coupon(checkout_req.coupon_code, total_amount)
+            except ValueError as e:
+                # Propagate specific error (e.g. Min Order Value)
+                raise ValueError(str(e))
+
         final_amount = total_amount - discount
         
         return {
@@ -276,3 +375,32 @@ class CoreRestaurantService:
 
     def get_order_by_id(self, order_id: int):
         return self.db.query(models.Order).filter(models.Order.id == order_id).first()
+
+    # --- Marketing & Discovery ---
+    def get_banners(self):
+        return self.db.query(models.Banner).filter(models.Banner.is_active == True).order_by(models.Banner.priority.desc()).all()
+
+    def create_banner(self, banner: schemas.BannerCreate):
+        db_banner = models.Banner(**banner.model_dump())
+        self.db.add(db_banner)
+        self.db.commit()
+        self.db.refresh(db_banner)
+        return db_banner
+
+    def get_collections(self):
+        return self.db.query(models.Collection).all()
+
+    def create_collection(self, collection: schemas.CollectionCreate):
+        db_coll = models.Collection(
+            title=collection.title,
+            image_url=collection.image_url,
+            description=collection.description
+        )
+        if collection.food_ids:
+            foods = self.db.query(models.Food).filter(models.Food.food_id.in_(collection.food_ids)).all()
+            db_coll.foods = foods
+            
+        self.db.add(db_coll)
+        self.db.commit()
+        self.db.refresh(db_coll)
+        return db_coll
