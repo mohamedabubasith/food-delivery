@@ -131,13 +131,19 @@ class DashboardRepository {
     }
   }
 
-  Future<void> submitFeedback(int orderId, int rate, String comment) async {
+  Future<double> submitFeedback(int orderId, int rate, String comment) async {
     try {
-      await _dio.post('/orders/feedback', data: {
+      final response = await _dio.post('/orders/feedback', data: {
         "order_id": orderId,
         "rate": rate,
         "comment": comment,
       });
+      
+      // Parse new_rating from response
+       if (response.data is Map && response.data.containsKey('data')) {
+        return (response.data['data']['new_rating'] as num).toDouble();
+      }
+      return (response.data['new_rating'] as num).toDouble();
     } catch (e) {
       if (e is DioException) {
         throw Exception(e.response?.data['detail'] ?? "Failed to submit rating");

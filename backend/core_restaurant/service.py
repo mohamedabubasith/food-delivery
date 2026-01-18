@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, Float, cast
 from typing import List, Optional
 from datetime import datetime
 from ..common import models, schemas
@@ -472,7 +472,7 @@ class CoreRestaurantService:
         
         # Update Food Rating Link
         food_id = order.food_id
-        avg_rating = self.db.query(func.avg(models.Feedback.rate))\
+        avg_rating = self.db.query(func.avg(cast(models.Feedback.rate, Float)))\
             .join(models.Order, models.Order.id == models.Feedback.order_id)\
             .filter(models.Order.food_id == food_id)\
             .scalar()

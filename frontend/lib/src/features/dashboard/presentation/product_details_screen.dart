@@ -95,8 +95,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await repo.submitFeedback(orderId, selectedStars, commentController.text);
+                  final newRating = await repo.submitFeedback(orderId, selectedStars, commentController.text);
                   if(!mounted) return;
+                  setState(() {
+                    widget.food['rating'] = newRating;
+                  });
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Rating submitted!")));
                   // Trigger a refresh/re-fetch if possible, or just show success
