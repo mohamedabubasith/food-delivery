@@ -130,4 +130,40 @@ class DashboardRepository {
        rethrow;
     }
   }
+
+  Future<void> submitFeedback(int orderId, int rate, String comment) async {
+    try {
+      await _dio.post('/orders/feedback', data: {
+        "order_id": orderId,
+        "rate": rate,
+        "comment": comment,
+      });
+    } catch (e) {
+      if (e is DioException) {
+        throw Exception(e.response?.data['detail'] ?? "Failed to submit rating");
+      }
+      rethrow;
+    }
+  }
+
+  Future<int?> getLatestOrderForFood(int foodId) async {
+    try {
+      final response = await _dio.get('/orders/');
+      List<dynamic> orders = [];
+       if (response.data is Map && response.data.containsKey('data')) {
+        orders = response.data['data'] as List<dynamic>;
+      } else {
+        orders = response.data as List<dynamic>;
+      }
+      
+      for (var o in orders) {
+        if (o['food_id'] == foodId) {
+           return o['id'];
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }

@@ -43,6 +43,75 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
+  Future<void> _showRatingDialog() async {
+    final repo = context.read<DashboardRepository>();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+    
+    final orderId = await repo.getLatestOrderForFood(widget.food['food_id']);
+    if (!mounted) return;
+    Navigator.pop(context); // Close loading
+    
+    if (orderId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can only rate items you have ordered!")),
+      );
+      return;
+    }
+
+    int selectedStars = 5;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text("Rate this Food"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) => IconButton(
+                  icon: Icon(
+                    index < selectedStars ? Icons.star : Icons.star_border,
+                    color: Colors.orange,
+                  ),
+                  onPressed: () => setDialogState(() => selectedStars = index + 1),
+                )),
+              ),
+              TextField(
+                controller: commentController,
+                decoration: const InputDecoration(hintText: "Add a comment (optional)"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await repo.submitFeedback(orderId, selectedStars, commentController.text);
+                  if(!mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Rating submitted!")));
+                  // Trigger a refresh/re-fetch if possible, or just show success
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              }, 
+              child: const Text("Submit")
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   double get currentPrice {
     if (selectedVariant != null) {
       return (selectedVariant!['variant_price'] as num).toDouble();
@@ -133,15 +202,19 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                          ),
                        ),
-                       Container(
-                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                         decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(20)),
-                         child: Row(
-                           children: [
-                             const Icon(Icons.star, size: 16, color: Colors.orange),
-                             const SizedBox(width: 4),
-                             Text("${widget.food['rating'] ?? 4.5}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                           ],
+                       InkWell(
+                         onTap: _showRatingDialog,
+                         borderRadius: BorderRadius.circular(20),
+                         child: Container(
+                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                           decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(20)),
+                           child: Row(
+                             children: [
+                               const Icon(Icons.star, size: 16, color: Colors.orange),
+                               const SizedBox(width: 4),
+                               Text("${widget.food['rating'] ?? 4.5}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                             ],
+                           ),
                          ),
                        )
                      ],
