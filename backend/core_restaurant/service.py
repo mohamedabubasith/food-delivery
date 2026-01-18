@@ -7,6 +7,28 @@ class CoreRestaurantService:
     def __init__(self, db: Session):
         self.db = db
 
+    # --- Restaurant Management ---
+    def get_restaurants(self, search: Optional[str] = None):
+        query = self.db.query(models.Restaurant)
+        if search:
+            query = query.filter(models.Restaurant.name.ilike(f"%{search}%"))
+        return query.all()
+
+    def get_restaurant_by_id(self, restaurant_id: int):
+        return self.db.query(models.Restaurant).filter(models.Restaurant.id == restaurant_id).first()
+
+    def create_restaurant(self, restaurant: schemas.RestaurantCreate):
+        db_restaurant = models.Restaurant(
+            name=restaurant.name,
+            address=restaurant.address,
+            image_url=restaurant.image_url
+        )
+        self.db.add(db_restaurant)
+        self.db.commit()
+        self.db.refresh(db_restaurant)
+        return db_restaurant
+
+    # --- Food Methods ---
     def get_foods(
         self, 
         skip: int = 0, 

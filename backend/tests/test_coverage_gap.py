@@ -167,3 +167,54 @@ def test_kitchen_endpoints():
     res = client.get("/kitchen/orders?status=finished", headers=admin_headers)
     assert res.status_code == 200
     assert len(res.json()) == 0
+
+def test_marketplace_and_profile():
+    admin_headers, _ = get_auth_headers(role=1)
+    user_headers, user_id = get_auth_headers(role=0)
+
+    # 1. Restaurant Management
+    # Create (Admin)
+    res = client.post("/restaurants/", json={
+        "name": "New Tasty Spot",
+        "address": "123 Flavor Town",
+        "image_url": "http://img.com/logo.png"
+    }, headers=admin_headers)
+    assert res.status_code == 200
+    r_id = res.json()["id"]
+
+    # List (Public/User)
+    res = client.get("/restaurants/?search=Tasty", headers=user_headers)
+    assert res.status_code == 200
+    assert len(res.json()) >= 1
+    assert res.json()[0]["name"] == "New Tasty Spot"
+
+    # Get Details
+    res = client.get(f"/restaurants/{r_id}", headers=user_headers)
+    assert res.status_code == 200
+    assert res.json()["address"] == "123 Flavor Town"
+
+    # 2. User Profile Update
+    # Update Name & City
+    update_data = {"name": "Updated Name", "city": "New City", "phone_number": "111"}
+    res = client.put("/auth/me", json=update_data, headers=user_headers)
+    assert res.status_code == 200
+    assert res.json()["name"] == "Updated Name"
+    assert res.json()["city"] == "New City"
+
+    # Verify persistence
+    res = client.get("/auth/me", headers=user_headers)
+    assert res.json()["name"] == "Updated Name"
+
+    # 3. Address Deletion
+    # Create Address
+    res = client.post("/auth/addresses", json={"label": "To Delete", "address_line": "X", "city": "X", "zip_code": "X"}, headers=user_headers)
+    addr_id = res.json()["id"]
+
+    # Delete
+    res = client.delete(f"/auth/addresses/{addr_id}", headers=user_headers)
+    assert res.status_code == 200
+    
+    # Verify Gone
+    res = client.get("/auth/addresses", headers=user_headers)
+    ids = [a["id"] for a in res.json()]
+    assert addr_id not in ids

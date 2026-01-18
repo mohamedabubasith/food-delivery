@@ -82,6 +82,27 @@ def get_addresses(
 ):
     return db.query(models.UserAddress).filter(models.UserAddress.user_id == current_user.id).all()
 
+@router.put("/me", response_model=schemas.User)
+def update_profile(
+    user_update: schemas.UserCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    service = AuthService(db)
+    updated_user = service.update_user_profile(current_user.id, user_update)
+    return updated_user
+
+@router.delete("/addresses/{address_id}")
+def delete_address(
+    address_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    service = AuthService(db)
+    if service.delete_address(current_user.id, address_id):
+        return {"message": "Address deleted"}
+    raise HTTPException(status_code=404, detail="Address not found")
+
 @router.get("/me", response_model=schemas.User)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user

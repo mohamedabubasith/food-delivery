@@ -16,4 +16,13 @@ def seed_default_restaurant(db: Session):
         db.add(default_restaurant)
         db.commit()
         db.refresh(default_restaurant)
+        
+        # FIX: Update Postgres Sequence to avoid IntegrityError on next insert
+        try:
+            from sqlalchemy import text
+            db.execute(text("SELECT setval('restaurants_id_seq', (SELECT MAX(id) FROM restaurants));"))
+            db.commit()
+        except Exception as e:
+            print(f"Warning: Could not update sequence (might be SQLite?): {e}")
+
     return default_restaurant

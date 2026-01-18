@@ -18,6 +18,7 @@ app.include_router(core_controller.menu_router)
 app.include_router(core_controller.table_router)
 app.include_router(core_controller.reservation_router)
 app.include_router(core_controller.billing_router)
+app.include_router(core_controller.restaurant_router)
 app.include_router(kitchen_controller.router)
 
 @app.get("/")

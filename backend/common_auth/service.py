@@ -120,3 +120,31 @@ class AuthService:
             data={"sub": str(user.id)}, expires_delta=access_token_expires
         )
         return access_token
+
+    def update_user_profile(self, user_id: int, update_data: schemas.UserCreate):
+        user = self.db.query(models.User).filter(models.User.id == user_id).first()
+        if not user:
+            return None
+            
+        user.name = update_data.name
+        if update_data.email:
+            user.email = update_data.email
+        if update_data.city:
+            user.city = update_data.city
+        # Phone number update prevented here for simplicity or needs re-verification logic
+        
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def delete_address(self, user_id: int, address_id: int) -> bool:
+        address = self.db.query(models.UserAddress).filter(
+            models.UserAddress.id == address_id,
+            models.UserAddress.user_id == user_id
+        ).first()
+        
+        if address:
+            self.db.delete(address)
+            self.db.commit()
+            return True
+        return False

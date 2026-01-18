@@ -14,6 +14,36 @@ menu_router = APIRouter(prefix="/menu", tags=["menu"])
 table_router = APIRouter(prefix="/tables", tags=["tables"])
 reservation_router = APIRouter(prefix="/reservations", tags=["reservations"])
 billing_router = APIRouter(prefix="/bill", tags=["billing"])
+restaurant_router = APIRouter(prefix="/restaurants", tags=["restaurants"])
+
+# --- RESTAURANT ROUTES ---
+@restaurant_router.get("/", response_model=List[schemas.Restaurant])
+def get_restaurants(
+    search: Optional[str] = Query(None, description="Search by name"),
+    db: Session = Depends(database.get_db)
+):
+    service = CoreRestaurantService(db)
+    return service.get_restaurants(search)
+
+@restaurant_router.get("/{restaurant_id}", response_model=schemas.Restaurant)
+def get_restaurant(
+    restaurant_id: int,
+    db: Session = Depends(database.get_db)
+):
+    service = CoreRestaurantService(db)
+    res = service.get_restaurant_by_id(restaurant_id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    return res
+
+@restaurant_router.post("/", response_model=schemas.Restaurant)
+def create_restaurant(
+    restaurant: schemas.RestaurantCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_active_kitchen_user) # Admin only
+):
+    service = CoreRestaurantService(db)
+    return service.create_restaurant(restaurant)
 
 # --- MENU ROUTES ---
 @menu_router.post("/upload-image")
