@@ -14,6 +14,9 @@ import '../features/dashboard/presentation/offer_screen.dart';
 import '../features/dashboard/presentation/product_details_screen.dart';
 import '../features/dashboard/presentation/favorites_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/dashboard/presentation/orders_screen.dart';
+import '../features/dashboard/presentation/addresses_screen.dart';
+import '../features/dashboard/presentation/help_screen.dart';
 import '../features/auth/presentation/profile_screen.dart';
 import '../features/cart/presentation/cart_screen.dart';
 import '../features/cart/presentation/checkout_screen.dart';
@@ -111,6 +114,18 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: '/favorites',
         builder: (context, state) => const FavoritesScreen(),
+      ),
+      GoRoute(
+        path: '/orders',
+        builder: (context, state) => const OrdersScreen(),
+      ),
+      GoRoute(
+        path: '/addresses',
+        builder: (context, state) => const AddressesScreen(),
+      ),
+      GoRoute(
+        path: '/help',
+        builder: (context, state) => const HelpSupportScreen(),
       ),
       GoRoute(
         path: '/checkout',

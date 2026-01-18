@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../application/auth_bloc.dart';
 import '../data/auth_repository.dart';
 
@@ -131,11 +132,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 30),
 
             // Menu Options
-            _buildMenuItem(Icons.shopping_bag_outlined, "My Orders", () {}),
-            _buildMenuItem(Icons.location_on_outlined, "My Addresses", () {}),
-            _buildMenuItem(Icons.wallet_outlined, "Coupons & Offers", () {}),
-            _buildMenuItem(Icons.favorite_outline, "Favorites", () {}),
-            _buildMenuItem(Icons.help_outline, "Help & Support", () {}),
+            _buildMenuItem(Icons.shopping_bag_outlined, "My Orders", () => context.push('/orders')),
+            _buildMenuItem(Icons.location_on_outlined, "My Addresses", () => context.push('/addresses')),
+            _buildMenuItem(Icons.wallet_outlined, "Coupons & Offers", () => context.push('/cart')),
+            _buildMenuItem(Icons.favorite_outline, "Favorites", () => context.push('/favorites')),
+            _buildMenuItem(Icons.help_outline, "Help & Support", () => context.push('/help')),
             
             const SizedBox(height: 30),
             

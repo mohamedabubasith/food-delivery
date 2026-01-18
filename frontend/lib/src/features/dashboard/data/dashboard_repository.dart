@@ -152,19 +152,24 @@ class DashboardRepository {
     }
   }
 
-  Future<int?> getLatestOrderForFood(int foodId) async {
+  Future<List<dynamic>> getOrders() async {
     try {
       final response = await _dio.get('/orders/');
-      List<dynamic> orders = [];
-       if (response.data is Map && response.data.containsKey('data')) {
-        orders = response.data['data'] as List<dynamic>;
-      } else {
-        orders = response.data as List<dynamic>;
+      if (response.data is Map && response.data.containsKey('data')) {
+        return response.data['data'] as List<dynamic>;
       }
-      
+      return response.data as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<int?> getLatestOrderForFood(int foodId) async {
+    try {
+      final orders = await getOrders();
       for (var o in orders) {
         if (o['food_id'] == foodId) {
-           return o['id'];
+          return o['id'];
         }
       }
       return null;
