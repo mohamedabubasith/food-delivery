@@ -119,6 +119,7 @@ class UserAddress(Base):
     zip_code = Column(String)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    is_primary = Column(Boolean, default=False)
 
 class Favorite(Base):
     """

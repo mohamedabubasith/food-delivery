@@ -130,6 +130,30 @@ def update_profile_name(
         db.refresh(current_user)
     return {"message": "Profile updated successfully"}
 
+@router.put("/addresses/{address_id}", response_model=schemas.Address)
+def update_address(
+    address_id: int,
+    address_update: schemas.AddressCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    service = AuthService(db)
+    updated = service.update_address(current_user.id, address_id, address_update)
+    if updated:
+        return updated
+    raise HTTPException(status_code=404, detail="Address not found")
+
+@router.post("/addresses/{address_id}/primary")
+def set_primary_address(
+    address_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    service = AuthService(db)
+    if service.set_primary_address(current_user.id, address_id):
+        return {"message": "Set as primary successfully"}
+    raise HTTPException(status_code=404, detail="Address not found")
+
 @router.delete("/addresses/{address_id}")
 def delete_address(
     address_id: int,

@@ -34,7 +34,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _addresses = addresses;
         _isLoadingAddresses = false;
         if (addresses.isNotEmpty) {
-          _selectedAddressId = addresses.first['id'];
+          final primary = addresses.firstWhere((a) => a['is_primary'] == true, orElse: () => addresses.first);
+          _selectedAddressId = primary['id'];
         }
       });
     }

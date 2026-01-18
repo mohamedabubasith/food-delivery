@@ -91,6 +91,7 @@ class AddressBase(BaseModel):
     zip_code: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    is_primary: bool = False
 
     @validator("zip_code")
     def validate_pincode(cls, v):

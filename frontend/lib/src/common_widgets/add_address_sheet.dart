@@ -4,19 +4,33 @@ import '../features/dashboard/data/dashboard_repository.dart';
 
 class AddAddressBottomSheet extends StatefulWidget {
   final VoidCallback onAddressAdded;
+  final Map<String, dynamic>? initialAddress;
 
-  const AddAddressBottomSheet({super.key, required this.onAddressAdded});
+  const AddAddressBottomSheet({
+    super.key, 
+    required this.onAddressAdded,
+    this.initialAddress,
+  });
 
   @override
   State<AddAddressBottomSheet> createState() => _AddAddressBottomSheetState();
 }
 
 class _AddAddressBottomSheetState extends State<AddAddressBottomSheet> {
-  final _labelController = TextEditingController();
-  final _lineController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _zipController = TextEditingController();
+  late final TextEditingController _labelController;
+  late final TextEditingController _lineController;
+  late final TextEditingController _cityController;
+  late final TextEditingController _zipController;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _labelController = TextEditingController(text: widget.initialAddress?['label'] ?? '');
+    _lineController = TextEditingController(text: widget.initialAddress?['address_line'] ?? '');
+    _cityController = TextEditingController(text: widget.initialAddress?['city'] ?? '');
+    _zipController = TextEditingController(text: widget.initialAddress?['zip_code'] ?? '');
+  }
 
   @override
   void dispose() {
@@ -29,8 +43,8 @@ class _AddAddressBottomSheetState extends State<AddAddressBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFFD4AF37); // Gold accent
     const Color inputFillColor = Color(0xFFF7F7F7);
+    final isEditing = widget.initialAddress != null;
 
     return Container(
       padding: EdgeInsets.only(
@@ -60,13 +74,13 @@ class _AddAddressBottomSheetState extends State<AddAddressBottomSheet> {
           ),
           const SizedBox(height: 24),
           
-          const Text(
-            "Add New Address",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+          Text(
+            isEditing ? "Update Address" : "Add New Address",
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5),
           ),
           const SizedBox(height: 8),
           Text(
-            "Enter your delivery details to continue",
+            isEditing ? "Modify your address details below" : "Enter your delivery details to continue",
             style: TextStyle(color: Colors.grey[600], fontSize: 14),
           ),
           const SizedBox(height: 24),
@@ -128,9 +142,9 @@ class _AddAddressBottomSheetState extends State<AddAddressBottomSheet> {
               ),
               child: _isSaving
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      "SAVE & CONTINUE",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
+                  : Text(
+                      isEditing ? "UPDATE ADDRESS" : "SAVE & CONTINUE",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
                     ),
             ),
           ),
@@ -186,12 +200,19 @@ class _AddAddressBottomSheetState extends State<AddAddressBottomSheet> {
     setState(() => _isSaving = true);
     try {
       final repo = context.read<DashboardRepository>();
-      await repo.addAddress({
+      final data = {
         "label": _labelController.text,
         "address_line": _lineController.text,
         "city": _cityController.text,
         "zip_code": _zipController.text,
-      });
+      };
+
+      if (widget.initialAddress != null) {
+        await repo.updateAddress(widget.initialAddress!['id'], data);
+      } else {
+        await repo.addAddress(data);
+      }
+
       if (mounted) {
         widget.onAddressAdded();
         Navigator.pop(context);
@@ -209,11 +230,14 @@ class _AddAddressBottomSheetState extends State<AddAddressBottomSheet> {
 }
 
 // Global static helper to show the sheet
-Future<void> showAddAddressSheet(BuildContext context, VoidCallback onAdded) {
+Future<void> showAddAddressSheet(BuildContext context, VoidCallback onAdded, {Map<String, dynamic>? initialAddress}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => AddAddressBottomSheet(onAddressAdded: onAdded),
+    builder: (ctx) => AddAddressBottomSheet(
+      onAddressAdded: onAdded,
+      initialAddress: initialAddress,
+    ),
   );
 }

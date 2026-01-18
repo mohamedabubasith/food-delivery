@@ -206,6 +206,39 @@ class DashboardRepository {
     }
   }
 
+  Future<void> updateAddress(int id, Map<String, dynamic> addressData) async {
+    try {
+      await _dio.put('/auth/addresses/$id', data: addressData);
+    } catch (e) {
+      if (e is DioException) {
+        throw Exception(e.response?.data['detail'] ?? "Failed to update address");
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> setPrimaryAddress(int id) async {
+    try {
+      await _dio.post('/auth/addresses/$id/primary');
+    } catch (e) {
+      if (e is DioException) {
+        throw Exception(e.response?.data['detail'] ?? "Failed to set primary address");
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAddress(int id) async {
+    try {
+      await _dio.delete('/auth/addresses/$id');
+    } catch (e) {
+      if (e is DioException) {
+        throw Exception(e.response?.data['detail'] ?? "Failed to delete address");
+      }
+      rethrow;
+    }
+  }
+
   // --- Checkout ---
   Future<Map<String, dynamic>> checkout({
     required List<Map<String, dynamic>> items,

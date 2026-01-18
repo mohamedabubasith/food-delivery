@@ -147,6 +147,40 @@ class AuthService:
         self.db.refresh(user)
         return user
 
+    def update_address(self, user_id: int, address_id: int, address_update: schemas.AddressCreate) -> models.UserAddress:
+        address = self.db.query(models.UserAddress).filter(
+            models.UserAddress.id == address_id,
+            models.UserAddress.user_id == user_id
+        ).first()
+        
+        if address:
+            for key, value in address_update.dict().items():
+                setattr(address, key, value)
+            self.db.commit()
+            self.db.refresh(address)
+            return address
+        return None
+
+    def set_primary_address(self, user_id: int, address_id: int) -> bool:
+        # 1. Verify existence
+        address = self.db.query(models.UserAddress).filter(
+            models.UserAddress.id == address_id,
+            models.UserAddress.user_id == user_id
+        ).first()
+        
+        if not address:
+            return False
+            
+        # 2. Reset others
+        self.db.query(models.UserAddress).filter(
+            models.UserAddress.user_id == user_id
+        ).update({models.UserAddress.is_primary: False})
+        
+        # 3. Set current as primary
+        address.is_primary = True
+        self.db.commit()
+        return True
+
     def delete_address(self, user_id: int, address_id: int) -> bool:
         address = self.db.query(models.UserAddress).filter(
             models.UserAddress.id == address_id,
