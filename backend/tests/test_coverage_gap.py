@@ -120,7 +120,11 @@ def test_core_misc_endpoints():
 
     # 3. GET /orders/{id}
     # Create food & order first
-    res = client.post("/menu/", json={"food_name": "Test", "food_category": "Test", "food_price": 10, "food_quantity": 10}, headers=admin_headers)
+    # 3. GET /orders/{id}
+    # Create food & order first
+    import json
+    food_data = {"food_name": "Test", "food_category": "Test", "food_price": 10, "food_quantity": 10}
+    res = client.post("/menu/", data={"food_data": json.dumps(food_data)}, headers=admin_headers)
     food_id = res.json()["food_id"]
     res = client.post("/orders/", json={"food_id": food_id, "quantity": 1}, headers=user_headers)
     order_id = res.json()["id"]
@@ -149,7 +153,10 @@ def test_kitchen_endpoints():
     user_headers, _ = get_auth_headers(role=0)
     
     # Setup Data
-    res = client.post("/menu/", json={"food_name": "K-Test", "food_category": "Test", "food_price": 10, "food_quantity": 10}, headers=admin_headers)
+    # Setup Data
+    import json
+    food_data = {"food_name": "K-Test", "food_category": "Test", "food_price": 10, "food_quantity": 10}
+    res = client.post("/menu/", data={"food_data": json.dumps(food_data)}, headers=admin_headers)
     if res.status_code != 200:
         print(f"MENU CREATE FAILED: {res.json()}")
     assert res.status_code == 200
@@ -240,7 +247,7 @@ def test_food_with_images():
     # Mock Storage
     with patch("backend.common.utils.minio_service.MinioService.upload_file", side_effect=["http://minio/1.jpg", "http://minio/2.jpg"]):
         res = client.post(
-            "/menu/with-images", 
+            "/menu/", # Updated to root endpoint
             data={"food_data": json.dumps(food_data)}, 
             files=files, 
             headers=admin_headers

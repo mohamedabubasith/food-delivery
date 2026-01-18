@@ -97,16 +97,7 @@ def get_my_favorites(
     return [fav.food for fav in favorites]
 
 @menu_router.post("/", response_model=schemas.Food)
-def create_food_item(
-    food: schemas.FoodCreate, 
-    db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_active_kitchen_user)
-):
-    service = CoreRestaurantService(db)
-    return service.create_food(food)
-
-@menu_router.post("/with-images", response_model=schemas.Food)
-async def create_food_with_images(
+async def create_food_item(
     food_data: str = Form(...),
     images: List[UploadFile] = File(None),
     db: Session = Depends(database.get_db),

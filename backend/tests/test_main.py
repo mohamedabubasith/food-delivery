@@ -88,7 +88,9 @@ def test_full_system_integration():
     db.close()
     
     # 1. Core Restaurant: Create Menu
-    res = client.post("/menu/", json={"food_name": "Modular Pizza", "food_category": "Test", "food_price": 25.0, "food_quantity": 10}, headers=admin_header)
+    import json
+    food_data = {"food_name": "Modular Pizza", "food_category": "Test", "food_price": 25.0, "food_quantity": 10}
+    res = client.post("/menu/", data={"food_data": json.dumps(food_data)}, headers=admin_header)
     assert res.status_code == 200
     food_id = res.json()["food_id"]
     
@@ -149,7 +151,8 @@ def test_full_system_integration():
             {"variant_name": "Full", "variant_price": 550}
         ]
     }
-    res = client.post("/menu/", json=variant_food_data, headers=admin_header)
+    # Using data= for multipart/form-data
+    res = client.post("/menu/", data={"food_data": json.dumps(variant_food_data)}, headers=admin_header)
     assert res.status_code == 200
     bbq_id = res.json()["food_id"]
     variants = res.json()["variants"]
@@ -171,7 +174,7 @@ def test_full_system_integration():
         "description": "Delicious spicy paneer chunks",
         "is_veg": True
     }
-    res = client.post("/menu/", json=veg_food, headers=admin_header)
+    res = client.post("/menu/", data={"food_data": json.dumps(veg_food)}, headers=admin_header)
     assert res.status_code == 200
     paneer_id = res.json()["food_id"]
     
