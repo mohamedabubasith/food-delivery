@@ -47,7 +47,22 @@ class TokenData(BaseModel):
     phone_number: Optional[str] = None
     role: Optional[int] = None
 
+# --- Restaurant Schemas ---
+class RestaurantBase(BaseModel):
+    name: str
+    address: Optional[str] = None
+    image_url: Optional[str] = None
+
+class RestaurantCreate(RestaurantBase):
+    pass
+
+class Restaurant(RestaurantBase):
+    id: int
+    class Config:
+        orm_mode = True
+
 # --- Address Schemas ---
+# ... (Address schemas unchanged) ...
 class AddressBase(BaseModel):
     label: str
     address_line: str
@@ -75,6 +90,7 @@ class CheckoutRequest(BaseModel):
     items: List[CartItem]
     address_id: Optional[int] = None
     coupon_code: Optional[str] = None
+    restaurant_id: Optional[int] = 1 # Default to 1
 
 class BatchOrderSummary(BaseModel):
     batch_id: str
@@ -106,6 +122,7 @@ class FoodBase(BaseModel):
     image_url: Optional[str] = None
     description: Optional[str] = None
     is_veg: bool = False
+    restaurant_id: Optional[int] = 1 # Default to 1
 
 class FoodCreate(FoodBase):
     variants: List[FoodVariantCreate] = []
@@ -127,6 +144,7 @@ class MenuFilter(BaseModel):
     max_price: Optional[float] = None
     is_veg: Optional[bool] = None
     sort_by: Optional[str] = "relevance" # relevance, price_low, price_high, rating
+    restaurant_id: Optional[int] = 1 # Default to 1
 
 # --- Feedback Schemas ---
 class FeedbackBase(BaseModel):
@@ -148,6 +166,7 @@ class OrderBase(BaseModel):
     food_id: int
     variant_id: Optional[int] = None
     quantity: int
+    restaurant_id: Optional[int] = 1
 
 class OrderCreate(OrderBase):
     pass
@@ -172,6 +191,7 @@ class Order(OrderBase):
 class TableBase(BaseModel):
     name: int
     seat: int
+    restaurant_id: Optional[int] = 1
 
 class TableCreate(TableBase):
     pass
@@ -186,6 +206,7 @@ class ReservationBase(BaseModel):
     table_id: int
     slot: int
     r_date: date
+    restaurant_id: Optional[int] = 1
 
 class ReservationCreate(ReservationBase):
     pass
@@ -199,12 +220,14 @@ class Reservation(ReservationBase):
 class CheckReservation(BaseModel):
     slot: int
     r_date: date
+    restaurant_id: Optional[int] = 1
 
 # --- Waiting Schemas ---
 class WaitingBase(BaseModel):
     table_id: int
     slot: int
     r_date: date
+    restaurant_id: Optional[int] = 1
 
 class WaitingCreate(WaitingBase):
     pass

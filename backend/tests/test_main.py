@@ -32,6 +32,13 @@ client = TestClient(app)
 def setup_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    
+    # Seed Default Restaurant for Multi-Tenancy Tests
+    db = TestingSessionLocal()
+    from backend.common.utils.seed_restaurant import seed_default_restaurant
+    seed_default_restaurant(db)
+    db.close()
+    
     yield
 
 def test_register_success():

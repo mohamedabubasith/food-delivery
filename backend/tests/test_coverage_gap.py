@@ -26,6 +26,12 @@ client = TestClient(app)
 def setup_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    
+    db = TestingSessionLocal()
+    from backend.common.utils.seed_restaurant import seed_default_restaurant
+    seed_default_restaurant(db)
+    db.close()
+    
     yield
 
 def get_auth_headers(role=0):

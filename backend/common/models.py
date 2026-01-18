@@ -25,6 +25,25 @@ class User(Base):
     waitings = relationship("Waiting", backref="user")
     feedbacks = relationship("Feedback", backref="user")
 
+class Restaurant(Base):
+    """
+    New: Restaurant Entity for Multi-Vendor support.
+    """
+    __tablename__ = "restaurants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    address = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
+    
+    # Owner/Manager (Optional link to User)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Relationships
+    foods = relationship("Food", backref="restaurant")
+    tables = relationship("Table", backref="restaurant")
+    orders = relationship("Order", backref="restaurant")
+
 class Auth(Base):
     """
     Auth model for OTP storage from mobile_auth.
@@ -39,7 +58,11 @@ class Food(Base):
     __tablename__ = "foods"
 
     food_id = Column(Integer, primary_key=True, index=True)
-    food_name = Column(String, unique=True, index=True)
+    
+    # Multi-Vendor Link
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), default=1) # Default to 1 for backward compat seed
+    
+    food_name = Column(String, index=True) # Removed unique=True to allow same name in diff restaurants
     food_category = Column(String, index=True) # Indexed for filtering
     food_price = Column(Float)
     food_quantity = Column(Integer)
@@ -103,6 +126,9 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     batch_id = Column(String, index=True) # UUID for grouping multiple items in one checkout
     
+    # Multi-Vendor Link
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), default=1)
+
     food_id = Column(Integer, ForeignKey("foods.food_id"))
     variant_id = Column(Integer, ForeignKey("food_variants.id"), nullable=True) 
     user_id = Column(Integer, ForeignKey("users.id"))
@@ -124,7 +150,11 @@ class Table(Base):
     __tablename__ = "tables"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(Integer, unique=True)
+    
+    # Multi-Vendor Link
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), default=1)
+    
+    name = Column(Integer) # Removed Unique constraint to allow repeated table numbers globally (but unique per restaurant logic needed later)
     seat = Column(Integer)
     
     reservations = relationship("Reservation", backref="table")
@@ -134,6 +164,10 @@ class Reservation(Base):
     __tablename__ = "reservations"
 
     id = Column(Integer, primary_key=True, index=True)
+    
+    # Multi-Vendor Link
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), default=1)
+    
     user_id = Column(Integer, ForeignKey("users.id")) # Renamed from customer_id
     table_id = Column(Integer, ForeignKey("tables.id"))
     slot = Column(Integer)
@@ -152,6 +186,10 @@ class Waiting(Base):
     __tablename__ = "waitings"
 
     id = Column(Integer, primary_key=True, index=True)
+    
+    # Multi-Vendor Link
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id"), default=1)
+    
     user_id = Column(Integer, ForeignKey("users.id")) # Renamed from customer_id
     table_id = Column(Integer, ForeignKey("tables.id"))
     slot = Column(Integer)

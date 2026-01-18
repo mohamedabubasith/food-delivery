@@ -7,47 +7,66 @@ class TableService:
         self.db = db
 
     # --- Tables ---
-    def get_tables(self):
-        return self.db.query(models.Table).all()
+    def get_tables(self, restaurant_id: int = 1):
+        return self.db.query(models.Table).filter(models.Table.restaurant_id == restaurant_id).all()
 
     def create_table(self, table: schemas.TableCreate):
-        db_table = models.Table(name=table.name, seat=table.seat)
+        r_id = table.restaurant_id if table.restaurant_id else 1
+        db_table = models.Table(name=table.name, seat=table.seat, restaurant_id=r_id)
         self.db.add(db_table)
         self.db.commit()
         self.db.refresh(db_table)
         return db_table
 
     # --- Reservations ---
-    def get_reservations(self):
-        return self.db.query(models.Reservation).all()
+    def get_reservations(self, restaurant_id: int = 1):
+        return self.db.query(models.Reservation).filter(models.Reservation.restaurant_id == restaurant_id).all()
 
-    def check_availability(self, slot: int, r_date: date, person: int):
-        # Find tables with enough seats
-        tables = self.db.query(models.Table).filter(models.Table.seat >= person).all()
-        available_tables = []
-        for table in tables:
-            # Check if reserved
-            is_reserved = self.db.query(models.Reservation).filter(
-                models.Reservation.table_id == table.id,
-                models.Reservation.slot == slot,
-                models.Reservation.r_date == r_date
-            ).first()
-            if not is_reserved:
-                available_tables.append(table)
+    def check_availability(self, slot: int, r_date: date, person: int, restaurant_id: int = 1):
+        """
+        Return available tables for specific slot/date/restaurant
+        """
+        # Get all tables for this restaurant linked to reservations for that slot+date
+        reserved_table_ids = self.db.query(models.Reservation.table_id).filter(
+            models.Reservation.slot == slot,
+            models.Reservation.r_date == r_date,
+            models.Reservation.restaurant_id == restaurant_id
+        ).subquery()
+
+        # Find tables that are NOT in reserved list and match seat count
+        available_tables = self.db.query(models.Table).filter(
+            models.Table.restaurant_id == restaurant_id,
+            models.Table.seat >= person,
+            ~models.Table.id.in_(reserved_table_ids)
+        ).all()
+        
         return available_tables
 
     def create_reservation(self, res: schemas.ReservationCreate, user_id: int):
-        # Allow double booking? Assuming no for now based on 'check_availability'
-        # Check if already reserved
-        existing = self.db.query(models.Reservation).filter(
+        # Verify availability first
+        # Note: Ideally call check_availability logic, but for now strict check:
+        # Check if table belongs to requested restaurant (if passed) or inherit
+        # Assuming table exists.
+        
+        # Check if slot already taken
+        exists = self.db.query(models.Reservation).filter(
             models.Reservation.table_id == res.table_id,
             models.Reservation.slot == res.slot,
             models.Reservation.r_date == res.r_date
         ).first()
-        if existing:
-            return None # Already reserved
-
-        db_res = models.Reservation(**res.dict(), user_id=user_id)
+        
+        if exists:
+            return None
+            
+        r_id = res.restaurant_id if res.restaurant_id else 1
+        
+        db_res = models.Reservation(
+            table_id=res.table_id, 
+            slot=res.slot, 
+            r_date=res.r_date, 
+            user_id=user_id,
+            restaurant_id=r_id
+        )
         self.db.add(db_res)
         self.db.commit()
         self.db.refresh(db_res)
@@ -71,7 +90,8 @@ class TableService:
                     user_id=waiting.user_id,
                     table_id=waiting.table_id,
                     slot=waiting.slot,
-                    r_date=waiting.r_date
+                    r_date=waiting.r_date,
+                    restaurant_id=waiting.restaurant_id
                 )
                 self.db.add(new_res)
                 self.db.delete(waiting)
@@ -82,7 +102,15 @@ class TableService:
 
     # --- Waiting ---
     def create_waiting(self, wait: schemas.WaitingCreate, user_id: int):
-        db_wait = models.Waiting(**wait.dict(), user_id=user_id)
+        r_id = wait.restaurant_id if wait.restaurant_id else 1
+        
+        db_wait = models.Waiting(
+            table_id=wait.table_id,
+            slot=wait.slot,
+            r_date=wait.r_date,
+            user_id=user_id,
+            restaurant_id=r_id
+        )
         self.db.add(db_wait)
         self.db.commit()
         self.db.refresh(db_wait)
