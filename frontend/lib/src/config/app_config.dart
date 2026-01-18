@@ -1,9 +1,7 @@
-
-
-enum Environment { dev, staging, prod }
-
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'dart:io' show Platform;
+
+enum Environment { dev, staging, prod }
 
 class AppConfig {
   final String appName;
