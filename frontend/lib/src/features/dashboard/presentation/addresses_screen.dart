@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/dashboard_repository.dart';
+import '../../../common_widgets/add_address_sheet.dart';
 
 class AddressesScreen extends StatefulWidget {
   const AddressesScreen({super.key});
@@ -35,56 +36,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
   }
 
   Future<void> _addNewAddress() async {
-    final labelController = TextEditingController();
-    final lineController = TextEditingController();
-    final cityController = TextEditingController();
-    final zipController = TextEditingController();
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, top: 20, left: 20, right: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Add New Address", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(controller: labelController, decoration: const InputDecoration(labelText: "Label (e.g. Home, Office)")),
-            TextField(controller: lineController, decoration: const InputDecoration(labelText: "Address Line")),
-            TextField(controller: cityController, decoration: const InputDecoration(labelText: "City")),
-            TextField(controller: zipController, decoration: const InputDecoration(labelText: "Zip Code (6 digits)"), keyboardType: TextInputType.number),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () async {
-                  try {
-                    final repo = context.read<DashboardRepository>();
-                    await repo.addAddress({
-                      "label": labelController.text,
-                      "address_line": lineController.text,
-                      "city": cityController.text,
-                      "zip_code": zipController.text,
-                    });
-                    Navigator.pop(ctx);
-                    _fetchAddresses();
-                  } catch (e) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(e.toString())));
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-                child: const Text("SAVE ADDRESS"),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
+    await showAddAddressSheet(context, _fetchAddresses);
   }
 
   @override
