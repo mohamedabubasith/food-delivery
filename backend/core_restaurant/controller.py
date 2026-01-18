@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from datetime import date
 from ..common import models, schemas, database
@@ -104,6 +104,25 @@ def create_food_item(
 ):
     service = CoreRestaurantService(db)
     return service.create_food(food)
+
+@menu_router.post("/with-images", response_model=schemas.Food)
+async def create_food_with_images(
+    food_data: str = Form(...),
+    images: List[UploadFile] = File(None),
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_active_kitchen_user)
+):
+    import json
+    service = CoreRestaurantService(db)
+    
+    # Parse JSON
+    try:
+        data = json.loads(food_data)
+        food_create = schemas.FoodCreate(**data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+        
+    return await service.create_food_with_images(food_create, images)
 
 # --- BILLING ROUTES ---
 @billing_router.get("/{user_id}")

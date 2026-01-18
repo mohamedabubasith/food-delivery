@@ -214,7 +214,40 @@ def test_marketplace_and_profile():
     res = client.delete(f"/auth/addresses/{addr_id}", headers=user_headers)
     assert res.status_code == 200
     
-    # Verify Gone
     res = client.get("/auth/addresses", headers=user_headers)
     ids = [a["id"] for a in res.json()]
     assert addr_id not in ids
+
+def test_food_with_images():
+    admin_headers, _ = get_auth_headers(role=1)
+    
+    # Prepare Multipart Request
+    import json
+    food_data = {
+        "food_name": "Multi Image Burger",
+        "food_category": "Fast Food",
+        "food_price": 50,
+        "food_quantity": 100,
+        "description": "Tasty",
+        "variants": [{"variant_name": "Mega", "variant_price": 80}]
+    }
+    
+    files = [
+        ("images", ("img1.jpg", b"fake1", "image/jpeg")),
+        ("images", ("img2.jpg", b"fake2", "image/jpeg"))
+    ]
+    
+    # Mock Storage
+    with patch("backend.common.utils.minio_service.MinioService.upload_file", side_effect=["http://minio/1.jpg", "http://minio/2.jpg"]):
+        res = client.post(
+            "/menu/with-images", 
+            data={"food_data": json.dumps(food_data)}, 
+            files=files, 
+            headers=admin_headers
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["food_name"] == "Multi Image Burger"
+        assert len(data["images"]) == 2
+        assert data["image_url"] == "http://minio/1.jpg" # Primary set to first
+        assert data["images"][1]["image_url"] == "http://minio/2.jpg"

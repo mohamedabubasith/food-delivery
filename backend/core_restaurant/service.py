@@ -102,6 +102,29 @@ class CoreRestaurantService:
             self.db.commit()
             self.db.refresh(db_food) # Refresh to load variants
         return db_food
+
+    async def create_food_with_images(self, food: schemas.FoodCreate, images: List):
+        # 1. Create Food (without images first)
+        db_food = self.create_food(food)
+        
+        # 2. Upload Images
+        if images:
+            from ..common.utils.storage import StorageService
+            for idx, img_file in enumerate(images):
+                url = await StorageService.upload_image(img_file)
+                
+                # Create FoodImage
+                db_img = models.FoodImage(food_id=db_food.food_id, image_url=url)
+                self.db.add(db_img)
+                
+                # Set first image as primary if not set
+                if idx == 0 and not db_food.image_url:
+                    db_food.image_url = url
+            
+            self.db.commit()
+            self.db.refresh(db_food)
+            
+        return db_food
         
     def checkout(self, checkout_req: schemas.CheckoutRequest, user_id: int, billing_service):
         """

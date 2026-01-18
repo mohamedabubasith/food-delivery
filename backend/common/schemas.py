@@ -115,6 +115,15 @@ class FoodVariant(FoodVariantBase):
     class Config:
         orm_mode = True
 
+class FoodImageBase(BaseModel):
+    image_url: str
+
+class FoodImage(FoodImageBase):
+    id: int
+    food_id: int
+    class Config:
+        orm_mode = True
+
 class FoodBase(BaseModel):
     food_name: str
     food_category: str
@@ -132,6 +141,7 @@ class Food(FoodBase):
     food_id: int
     rating: float = 0.0
     variants: List[FoodVariant] = [] # Return variants
+    images: List[FoodImage] = [] # Multiple images
     # is_favorite: bool = False # TODO: Add this dynamically based on user context if needed
     
     class Config:

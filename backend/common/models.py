@@ -75,6 +75,17 @@ class Food(Base):
     orders = relationship("Order", backref="food")
     variants = relationship("FoodVariant", backref="food")
     favorites = relationship("Favorite", backref="food") # Relationship to favorites
+    images = relationship("FoodImage", backref="food") # Multiple images
+
+class FoodImage(Base):
+    """
+    Gallery images for a food item.
+    """
+    __tablename__ = "food_images"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    food_id = Column(Integer, ForeignKey("foods.food_id"))
+    image_url = Column(String)
 
 class UserAddress(Base):
     """
