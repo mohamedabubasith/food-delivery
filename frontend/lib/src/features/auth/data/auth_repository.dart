@@ -187,7 +187,11 @@ class AuthRepository {
           headers: {'Authorization': 'Bearer $token'},
         ),
       );
-      return response.data;
+      final responseData = response.data;
+      if (responseData is Map && responseData.containsKey('data')) {
+        return responseData['data'] as Map<String, dynamic>;
+      }
+      return responseData as Map<String, dynamic>;
     } catch (e) {
       if (e is DioException) {
         throw Exception(e.response?.data['detail'] ?? 'Failed to get profile');

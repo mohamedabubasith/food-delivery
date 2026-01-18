@@ -54,9 +54,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text("Error: $_error"),
+              TextButton(onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _error = null;
+                });
+                _fetchProfile();
+              }, child: const Text("Retry"))
+            ],
+          ),
+        ),
+      );
+    }
+
     String name = _profile?['name'] ?? "User";
     String email = _profile?['email'] ?? "";
     String phone = _profile?['phone_number'] ?? "";
+    
+    print("DEBUG: Profile Name: '$name'");
+    print("DEBUG: Profile Data: $_profile");
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
