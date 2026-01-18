@@ -9,6 +9,8 @@ import '../../cart/application/cart_bloc.dart';
 import '../../cart/application/cart_event.dart';
 import '../../cart/application/cart_state.dart';
 import '../data/dashboard_repository.dart';
+import '../../../utils/location_service.dart';
+import '../../../utils/toast_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _error;
   String _selectedCategory = "All";
   final TextEditingController _searchController = TextEditingController();
+  String? _currentAddress;
+  bool _isLocating = false;
 
   // Auto-Scroll State
   late PageController _pageController;
@@ -174,6 +178,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _updateLocation() async {
+    if (_isLocating) return;
+    setState(() => _isLocating = true);
+    
+    try {
+      final position = await LocationService.getCurrentPosition();
+      final address = await LocationService.getAddressFromLatLng(position.latitude, position.longitude);
+      
+      if (mounted) {
+        setState(() {
+          _currentAddress = address;
+          _isLocating = false;
+        });
+        ToastService.showSuccess(context, "Location updated to $address");
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLocating = false);
+        ToastService.showError(context, "Could not get location: $e");
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -224,18 +251,36 @@ class _HomeScreenState extends State<HomeScreen> {
             elevation: 0,
             leading: const Icon(Icons.location_on, color: Colors.deepOrange), // Location icon instead of back
             titleSpacing: 0,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Delivering to", 
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                Text(
-                  _restaurant?['address'] ?? "Select Location",
-                  style: const TextStyle(color: darkColor, fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ],
+            title: InkWell(
+              onTap: _updateLocation,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        "Delivering to", 
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                      if (_isLocating) ...[
+                        const SizedBox(width: 8),
+                        const SizedBox(
+                          width: 10,
+                          height: 10,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepOrange),
+                        ),
+                      ],
+                      const Icon(Icons.keyboard_arrow_down, size: 14, color: Colors.grey),
+                    ],
+                  ),
+                  Text(
+                    _currentAddress ?? _restaurant?['address'] ?? "Select Location",
+                    style: const TextStyle(color: darkColor, fontSize: 14, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
             actions: [
                Padding(
