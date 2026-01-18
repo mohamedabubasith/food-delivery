@@ -13,6 +13,8 @@ import '../features/dashboard/presentation/home_screen.dart';
 import '../features/dashboard/presentation/offer_screen.dart';
 import '../features/dashboard/presentation/product_details_screen.dart';
 import '../features/dashboard/presentation/favorites_screen.dart';
+import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/auth/presentation/profile_screen.dart';
 import '../features/cart/presentation/cart_screen.dart';
 import '../features/cart/presentation/checkout_screen.dart';
 
@@ -86,7 +88,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => const DashboardScreen(),
       ),
       GoRoute(
         path: '/offer',
