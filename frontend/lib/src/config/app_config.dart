@@ -45,7 +45,7 @@ class AppConfig {
     debugPrint('🚀 APP CONFIG: Base URL set to $baseUrl');
 
     return AppConfig(
-      appName: 'Local Eats (Dev)',
+      appName: 'AB Delivery (Dev)',
       apiBaseUrl: baseUrl,
       environment: Environment.dev,
       googleClientId: const String.fromEnvironment('GOOGLE_CLIENT_ID'),

@@ -15,12 +15,15 @@ set +a
 # Navigate to frontend directory
 cd frontend || exit 1
 
-# Run Flutter web server without opening browser
-echo "Starting Flutter web server on http://localhost:3000"
-echo "You can access the app at: http://localhost:3000"
+# Default device
+DEVICE=${1:-"web-server"}
+
+# Run Flutter
+echo "Starting Flutter on device: $DEVICE"
 fvm flutter run \
-  -d web-server \
+  -d "$DEVICE" \
   --web-port 3000 \
+  --dart-define=API_BASE_URL="$API_BASE_URL" \
   --dart-define=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
   --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
   --dart-define=FIREBASE_AUTH_DOMAIN="$FIREBASE_AUTH_DOMAIN" \

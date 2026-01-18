@@ -1,4 +1,4 @@
-package com.albrisk.delivery
+package com.abdelivery.app
 
 import io.flutter.embedding.android.FlutterActivity
 
