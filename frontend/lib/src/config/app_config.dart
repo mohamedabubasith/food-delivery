@@ -2,6 +2,9 @@
 
 enum Environment { dev, staging, prod }
 
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'dart:io' show Platform;
+
 class AppConfig {
   final String appName;
   final String apiBaseUrl;
@@ -29,9 +32,21 @@ class AppConfig {
 
   // Default Dev Config
   factory AppConfig.dev() {
+    String baseUrl = const String.fromEnvironment('API_BASE_URL');
+    
+    if (baseUrl.trim().isEmpty) {
+      if (!kIsWeb && Platform.isAndroid) {
+        baseUrl = 'http://10.0.2.2:8000'; // Standard Android Emulator Bridge
+      } else {
+        baseUrl = 'http://127.0.0.1:8000'; // Default for iOS/Web/Desktop
+      }
+    }
+
+    debugPrint('🚀 APP CONFIG: Base URL set to $baseUrl');
+
     return AppConfig(
       appName: 'Local Eats (Dev)',
-      apiBaseUrl: const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://127.0.0.1:8000'),
+      apiBaseUrl: baseUrl,
       environment: Environment.dev,
       googleClientId: const String.fromEnvironment('GOOGLE_CLIENT_ID'),
       firebaseOptions: {

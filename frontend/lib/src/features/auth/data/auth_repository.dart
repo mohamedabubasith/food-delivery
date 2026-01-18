@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 import '../../../utils/dio_provider.dart';
 
 class AuthRepository {
@@ -31,8 +33,12 @@ class AuthRepository {
 
   Future<String> signInWithGoogle() async {
     try {
+      // On Android, the Client ID is picked up automatically from google-services.json
+      // Passing it manually can cause warnings or issues.
+      final String? effectiveClientId = (kIsWeb || !Platform.isAndroid) ? googleClientId : null;
+      
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: googleClientId,
+        clientId: effectiveClientId,
       );
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       
